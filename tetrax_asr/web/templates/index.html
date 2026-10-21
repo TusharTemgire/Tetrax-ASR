@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tetrax ASR — Real-Time Indian-English Speech Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="header">
+    <div class="logo-area">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12v-2h-2z"></path>
+        </svg>
+      </div>
+      <div>
+        <span class="brand-title">Tetrax ASR</span>
+        <span class="brand-badge">Voice Intelligence</span>
+      </div>
+    </div>
+
+    <div class="header-status">
+      <div class="status-pill" id="systemHealthPill">
+        <div class="status-dot"></div>
+        <span id="systemHealthText">Checking Engine...</span>
+      </div>
+      <a href="#colab" class="colab-link" onclick="document.querySelector('[data-tab=tab-colab]').click()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        Colab Fine-Tuning Guide
+      </a>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Tab Controls -->
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="tab-streaming">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path>
+          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path>
+        </svg>
+        Real-Time Streaming
+      </button>
+      <button class="tab-btn" data-tab="tab-upload">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"></path>
+        </svg>
+        File Transcription (REST)
+      </button>
+      <button class="tab-btn" data-tab="tab-colab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"></path>
+        </svg>
+        Colab Training & Svarah
+      </button>
+    </div>
+
+    <!-- Tab 1: Real-Time Streaming -->
+    <div class="tab-pane active" id="tab-streaming">
+      <div class="dashboard-grid">
+        <div class="glass-card">
+          <div class="stream-control-bar">
+            <div>
+              <h2 style="font-size:1.2rem; font-weight:700;">Live Speech Stream</h2>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;" id="streamStatus">Ready to Stream</p>
+            </div>
+            <button class="btn-stream" id="streamBtn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path>
+                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path>
+              </svg>
+              Start Live Speech Stream
+            </button>
+          </div>
+
+          <canvas class="visualizer-canvas" id="visualizer" width="600" height="70"></canvas>
+
+          <div class="card-title">
+            <span>Live Captions & Interim Hypothesis</span>
+            <button class="status-pill" onclick="document.getElementById('committedCaptions').innerHTML=''; document.getElementById('interimCaption').textContent='';" style="cursor:pointer; border:none;">Clear</button>
+          </div>
+
+          <div class="captions-box" id="captionsBox">
+            <div id="committedCaptions"></div>
+            <div id="interimCaption" class="caption-interim"></div>
+          </div>
+        </div>
+
+        <!-- Sidebar Info -->
+        <div class="glass-card" style="height:fit-content;">
+          <h3 class="card-title">ASR Engine Profile</h3>
+          <div class="info-row">
+            <span class="info-label">Active Model</span>
+            <span id="activeModelBadge"><span class="svarah-pill">Loading...</span></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Sample Rate</span>
+            <span class="info-val">16,000 Hz Mono</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Protocol</span>
+            <span class="info-val">WebSocket (PCM 16-bit)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">VAD Energy Gate</span>
+            <span class="info-val">0.008 RMS</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Silence Commit</span>
+            <span class="info-val">800 ms</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Language</span>
+            <span class="info-val">en (Indian English)</span>
+          </div>
+
+          <div style="margin-top:1.5rem; padding:12px; border-radius:8px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.2);">
+            <div style="font-weight:600; font-size:0.85rem; color:var(--accent-cyan); margin-bottom:4px;">Real-Time Optimization</div>
+            <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
+              Chunked sliding window processes 256ms audio packets. Speech detection automatically triggers interim preview before committing finalized sentences.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: File Transcription -->
+    <div class="tab-pane" id="tab-upload">
+      <div class="glass-card">
+        <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.5rem;">Recorded Audio File Transcription</h2>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">
+          Upload WAV, MP3, M4A, WEBM, or FLAC files to run through Tetrax Whisper with timestamped segment breakdown.
+        </p>
+
+        <div class="upload-dropzone" id="uploadDropzone">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <div style="font-weight:600; font-size:1rem; margin-bottom:4px;">Drag & Drop audio file here, or click to browse</div>
+          <div style="font-size:0.8rem; color:var(--text-dim);" id="selectedFileName">Supports WAV, MP3, M4A, WEBM up to 50MB</div>
+          <input type="file" id="audioFileInput" accept="audio/*" style="display:none;">
+        </div>
+
+        <div class="audio-preview" id="audioPreview">
+          <audio id="audioPlayer" controls></audio>
+          <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
+            <button class="btn-transcribe" id="transcribeBtn" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5v14l11-7z"></path>
+              </svg>
+              Transcribe Audio
+            </button>
+          </div>
+        </div>
+
+        <!-- Result Card -->
+        <div id="fileResultCard" style="display:none; margin-top:2rem; border-top:1px solid var(--border-subtle); padding-top:1.5rem;">
+          <h3 class="card-title">
+            <span>Transcription Result</span>
+            <button class="status-pill" onclick="navigator.clipboard.writeText(document.getElementById('fileFullText').textContent); alert('Copied to clipboard!');" style="cursor:pointer; border:none;">Copy Text</button>
+          </h3>
+
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div class="metric-label">Audio Duration</div>
+              <div class="metric-value" id="metaDuration">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Processing Time</div>
+              <div class="metric-value" id="metaLatency">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Real-Time Factor</div>
+              <div class="metric-value" id="metaRTF" style="color:var(--accent-cyan);">-</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Engine Model</div>
+              <div class="metric-value" id="metaModel" style="font-size:0.9rem;">-</div>
+            </div>
+          </div>
+
+          <div style="margin-top:1.25rem;">
+            <div style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; font-weight:600; margin-bottom:6px;">Full Text</div>
+            <div id="fileFullText" style="padding:1rem; background:rgba(0,0,0,0.3); border-radius:8px; line-height:1.6; border:1px solid var(--border-subtle);"></div>
+          </div>
+
+          <div style="margin-top:1.25rem;">
+            <div style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; font-weight:600; margin-bottom:6px;">Timestamped Segments</div>
+            <div id="fileSegments" style="max-height:220px; overflow-y:auto; padding:0.5rem; background:rgba(0,0,0,0.2); border-radius:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Colab Training & Svarah Dataset -->
+    <div class="tab-pane" id="tab-colab">
+      <div class="dashboard-grid">
+        <div class="glass-card">
+          <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem; display:flex; align-items:center; gap:8px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#fbbf24">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+            Fine-Tuning Tetrax ASR in Google Colab
+          </h2>
+          <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.6; margin-bottom:1.5rem;">
+            You can train and adapt Whisper-Small on Indian-accented English directly inside Google Colab (Free T4 GPU or A100). The self-contained notebook is ready in your repo at <code style="color:var(--accent-cyan);">notebooks/Tetrax_ASR_Colab_FineTuning.ipynb</code>.
+          </p>
+
+          <div style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:8px; padding:1.25rem; margin-bottom:1.5rem;">
+            <h4 style="color:#fbbf24; font-size:0.95rem; font-weight:600; margin-bottom:0.5rem;">Quick Colab Workflow Steps</h4>
+            <ol style="margin-left:1.25rem; font-size:0.85rem; line-height:1.7; color:var(--text-main);">
+              <li>Open Google Colab (<a href="https://colab.research.google.com" target="_blank" style="color:#38bdf8;">colab.research.google.com</a>) and select <strong>Runtime &gt; Change runtime type &gt; T4 GPU</strong>.</li>
+              <li>Upload <code>notebooks/Tetrax_ASR_Colab_FineTuning.ipynb</code> or open directly from GitHub.</li>
+              <li>Run the cells sequentially: it automatically loads <code>ai4bharat/Svarah</code>, splits into train/validation, attaches LoRA adapters (Rank=32), and trains with Seq2SeqTrainer.</li>
+              <li>Download the resulting <code>checkpoints/tetrax-whisper-small-indian-en/</code> folder and place it in your local repository.</li>
+              <li>The Tetrax ASR backend immediately detects and mounts the fine-tuned LoRA weights for both REST and real-time streaming!</li>
+            </ol>
+          </div>
+
+          <h3 class="card-title">Training Hyperparameter Recommendations</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <div style="font-size:0.75rem; color:var(--text-dim);">Base Model</div>
+              <div style="font-weight:600; font-size:0.9rem;">openai/whisper-small (244M)</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <div style="font-size:0.75rem; color:var(--text-dim);">Adaptation Method</div>
+              <div style="font-weight:600; font-size:0.9rem;">PEFT LoRA (r=32, alpha=64)</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <div style="font-size:0.75rem; color:var(--text-dim);">Batch Size &amp; Accumulation</div>
+              <div style="font-weight:600; font-size:0.9rem;">Batch=8, Grad Accum=2</div>
+            </div>
+            <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
+              <div style="font-size:0.75rem; color:var(--text-dim);">Target Metric</div>
+              <div style="font-weight:600; font-size:0.9rem;">WER (Word Error Rate)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Svarah Dataset Card -->
+        <div class="glass-card" style="height:fit-content;">
+          <h3 class="card-title">AI4Bharat Svarah Dataset</h3>
+          <div class="info-row">
+            <span class="info-label">Dataset ID</span>
+            <span class="info-val">ai4bharat/Svarah</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Total Duration</span>
+            <span class="info-val">~9.6 Hours</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Audio Examples</span>
+            <span class="info-val">6,656 Samples</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Unique Speakers</span>
+            <span class="info-val">117 Speakers</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Indian States</span>
+            <span class="info-val">19 States &amp; 65 Districts</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Language</span>
+            <span class="info-val">Indian-Accented English</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">License</span>
+            <span class="info-val">CC BY 4.0</span>
+          </div>
+
+          <div style="margin-top:1rem; font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
+            Svarah captures spontaneous Indian English with varied regional phonetics and prosody across Hindi, Marathi, Bengali, Tamil, Telugu, and Kannada native backgrounds.
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

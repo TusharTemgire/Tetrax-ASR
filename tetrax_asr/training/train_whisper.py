@@ -1,0 +1,220 @@
+"""
+Tetrax Whisper Small Fine-Tuning Script using LoRA (PEFT)
+Designed for both local GPU training and Google Colab execution.
+Supports both local parquet dataset in data/ and Hugging Face Hub.
+"""
+
+import os
+import argparse
+from pathlib import Path
+import torch
+import evaluate
+from transformers import (
+    WhisperProcessor,
+    WhisperForConditionalGeneration,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
+)
+from peft import LoraConfig, get_peft_model
+import logging
+
+from tetrax_asr.data.svarah_loader import prepare_svarah_dataset_dict, extract_audio_array
+from tetrax_asr.data.collator import DataCollatorSpeechSeq2SeqWithPadding
+from tetrax_asr.config import model_config, training_config
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("TetraxASR.Train")
+
+
+def train(
+    base_model_id: str = "openai/whisper-small",
+    output_dir: str = "./checkpoints/tetrax-whisper-small-indian-en",
+    num_train_epochs: int = 3,
+    batch_size: int = 8,
+    gradient_accumulation_steps: int = 2,
+    learning_rate: float = 1e-4,
+    lora_r: int = 32,
+    lora_alpha: int = 64,
+    fp16: bool = True,
+    drive_dir: str = None,
+):
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Loading processor for {base_model_id}...")
+    processor = WhisperProcessor.from_pretrained(
+        base_model_id,
+        language="en",
+        task="transcribe"
+    )
+
+    # 1. Prepare Dataset
+    logger.info("Loading Svarah dataset and splitting...")
+    dataset_dict = prepare_svarah_dataset_dict(
+        train_ratio=training_config.train_ratio,
+        val_ratio=training_config.val_ratio,
+        test_ratio=training_config.test_ratio,
+        seed=training_config.random_seed
+    )
+
+    def prepare_dataset_batch(batch):
+        audio_arr, sr = extract_audio_array(batch["audio_filepath"], target_sr=16000)
+        batch["input_features"] = processor.feature_extractor(
+            audio_arr,
+            sampling_rate=sr
+        ).input_features[0]
+        batch["labels"] = processor.tokenizer(batch["text"]).input_ids
+        return batch
+
+    logger.info("Mapping features and tokenizing labels on train and validation splits...")
+    train_data = dataset_dict["train"].map(
+        prepare_dataset_batch,
+        remove_columns=dataset_dict["train"].column_names,
+        desc="Tokenizing Train Data"
+    )
+    val_data = dataset_dict["validation"].map(
+        prepare_dataset_batch,
+        remove_columns=dataset_dict["validation"].column_names,
+        desc="Tokenizing Validation Data"
+    )
+
+    data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
+
+    # 2. Metric Computation (WER)
+    wer_metric = evaluate.load("wer")
+
+    def compute_metrics(pred):
+        pred_ids = pred.predictions
+        label_ids = pred.label_ids
+
+        label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
+
+        pred_str = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
+        label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
+
+        wer = 100 * wer_metric.compute(predictions=pred_str, references=label_str)
+        return {"wer": wer}
+
+    # 3. Model & LoRA Setup
+    logger.info(f"Loading base model: {base_model_id}...")
+    model = WhisperForConditionalGeneration.from_pretrained(
+        base_model_id,
+        torch_dtype=torch.float16 if fp16 and torch.cuda.is_available() else torch.float32,
+        low_cpu_mem_usage=True
+    )
+
+    model.config.use_cache = False
+    model.config.forced_decoder_ids = None
+    model.config.suppress_tokens = []
+
+    lora_config = LoraConfig(
+        r=lora_r,
+        lora_alpha=lora_alpha,
+        target_modules=["q_proj", "v_proj", "k_proj", "out_proj"],
+        lora_dropout=0.05,
+        bias="none"
+    )
+
+    logger.info("Applying LoRA adapter to Whisper model...")
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
+
+    # 4. Training Arguments
+    training_args = Seq2SeqTrainingArguments(
+        output_dir=output_dir,
+        per_device_train_batch_size=batch_size,
+        gradient_accumulation_steps=gradient_accumulation_steps,
+        learning_rate=learning_rate,
+        warmup_steps=100,
+        num_train_epochs=num_train_epochs,
+        eval_strategy="steps",
+        fp16=fp16 and torch.cuda.is_available(),
+        per_device_eval_batch_size=batch_size,
+        generation_max_length=225,
+        save_steps=100,
+        eval_steps=100,
+        logging_steps=25,
+        report_to=["tensorboard"],
+        load_best_model_at_end=True,
+        metric_for_best_model="wer",
+        greater_is_better=False,
+        save_total_limit=2,
+        remove_unused_columns=False,
+        label_names=["labels"],
+    )
+
+    import inspect
+    trainer_kwargs = {
+        "args": training_args,
+        "model": model,
+        "train_dataset": train_data,
+        "eval_dataset": val_data,
+        "data_collator": data_collator,
+        "compute_metrics": compute_metrics,
+    }
+    if "processing_class" in inspect.signature(Seq2SeqTrainer.__init__).parameters:
+        trainer_kwargs["processing_class"] = processor.feature_extractor
+    else:
+        trainer_kwargs["tokenizer"] = processor.feature_extractor
+
+    trainer = Seq2SeqTrainer(**trainer_kwargs)
+
+    logger.info("Starting Whisper LoRA fine-tuning...")
+    trainer.train()
+
+    # 5. Save Adapter, Processor, and Create ZIP Archive
+    import shutil
+    logger.info(f"Saving fine-tuned LoRA weights and processor to {output_dir}...")
+    model.save_pretrained(output_dir)
+    processor.save_pretrained(output_dir)
+    logger.info("Training complete and adapter successfully saved!")
+
+    # 6. Create ZIP Archive of the model
+    zip_path = Path(str(output_path) + ".zip")
+    logger.info(f"Creating ZIP archive of model: {zip_path}...")
+    shutil.make_archive(str(output_path), "zip", output_dir)
+    zip_size_mb = zip_path.stat().st_size / (1024 * 1024) if zip_path.exists() else 0.0
+    logger.info(f"Successfully created {zip_path.name} ({zip_size_mb:.2f} MB)")
+
+    # 7. Save to Google Drive if available
+    drive_target = None
+    default_colab_drive = Path("/content/drive/MyDrive/Tetrax-ASR/checkpoints")
+    if drive_dir and Path(drive_dir).parent.exists():
+        drive_target = Path(drive_dir)
+    elif default_colab_drive.parent.exists():
+        drive_target = default_colab_drive
+
+    if drive_target:
+        try:
+            drive_target.mkdir(parents=True, exist_ok=True)
+            # Copy zip to Drive
+            drive_zip_dest = drive_target / zip_path.name
+            shutil.copy2(str(zip_path), str(drive_zip_dest))
+            logger.info(f"Saved model ZIP to Google Drive: {drive_zip_dest}")
+
+            # Also copy folder to Drive
+            drive_folder_dest = drive_target / output_path.name
+            shutil.copytree(output_dir, str(drive_folder_dest), dirs_exist_ok=True)
+            logger.info(f"Saved model folder to Google Drive: {drive_folder_dest}")
+        except Exception as e:
+            logger.warning(f"Could not save to Google Drive ({e}). Zip is preserved locally at {zip_path}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train Whisper LoRA on Svarah")
+    parser.add_argument("--base_model", type=str, default="openai/whisper-small")
+    parser.add_argument("--output_dir", type=str, default="./checkpoints/tetrax-whisper-small-indian-en")
+    parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--drive_dir", type=str, default="/content/drive/MyDrive/Tetrax-ASR/checkpoints", help="Google Drive destination directory")
+    args = parser.parse_args()
+
+    train(
+        base_model_id=args.base_model,
+        output_dir=args.output_dir,
+        num_train_epochs=args.epochs,
+        batch_size=args.batch_size,
+        learning_rate=args.lr,
+        drive_dir=args.drive_dir,
+    )

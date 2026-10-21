@@ -1,0 +1,235 @@
+"""
+Tetrax Whisper Inference Engine
+Supports standard Transformers + PEFT (LoRA fine-tuned) and Faster-Whisper (CTranslate2).
+Handles file path, audio bytes, and numpy array audio inputs.
+"""
+
+import io
+import time
+import os
+from pathlib import Path
+from typing import Dict, Any, Optional, Union
+import logging
+import torch
+import numpy as np
+import soundfile as sf
+import librosa
+
+from tetrax_asr.config import model_config, audio_config
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("TetraxASR.Inference")
+
+
+class TetraxWhisperEngine:
+    def __init__(
+        self,
+        base_model_id: Optional[str] = None,
+        adapter_path: Optional[str] = None,
+        device: Optional[str] = None,
+        use_faster_whisper: Optional[bool] = None,
+    ):
+        self.base_model_id = base_model_id or model_config.base_model_id
+        self.adapter_path = adapter_path or model_config.adapter_path
+        self.device = device or model_config.device
+        self.use_faster_whisper = (
+            use_faster_whisper
+            if use_faster_whisper is not None
+            else model_config.use_faster_whisper
+        )
+
+        self.processor = None
+        self.model = None
+        self.fw_model = None
+        self.is_finetuned = False
+        self._load_engine()
+
+    def _load_engine(self):
+        """Loads Whisper model and attaches PEFT adapter if present."""
+        if self.use_faster_whisper:
+            try:
+                from faster_whisper import WhisperModel
+                logger.info(f"Loading Faster-Whisper model: {self.base_model_id} on {self.device}...")
+                compute_type = "float16" if self.device == "cuda" else "int8"
+                self.fw_model = WhisperModel(
+                    self.base_model_id,
+                    device=self.device,
+                    compute_type=compute_type
+                )
+                logger.info("Faster-Whisper engine ready.")
+                return
+            except Exception as e:
+                logger.warning(f"Could not initialize Faster-Whisper ({e}), falling back to PyTorch Transformers.")
+                self.use_faster_whisper = False
+
+        from transformers import WhisperProcessor, WhisperForConditionalGeneration
+
+        logger.info(f"Loading WhisperProcessor for {self.base_model_id}...")
+        self.processor = WhisperProcessor.from_pretrained(
+            self.base_model_id,
+            language=model_config.language,
+            task=model_config.task
+        )
+
+        torch_dtype = torch.float16 if self.device == "cuda" else torch.float32
+        logger.info(f"Loading WhisperForConditionalGeneration ({self.base_model_id}) on {self.device} ({torch_dtype})...")
+
+        try:
+            self.model = WhisperForConditionalGeneration.from_pretrained(
+                self.base_model_id,
+                torch_dtype=torch_dtype,
+                low_cpu_mem_usage=True
+            ).to(self.device)
+        except Exception as e:
+            logger.warning(f"Failed loading {self.base_model_id} ({e}), falling back to {model_config.fallback_model_id}")
+            self.base_model_id = model_config.fallback_model_id
+            self.processor = WhisperProcessor.from_pretrained(
+                self.base_model_id,
+                language=model_config.language,
+                task=model_config.task
+            )
+            self.model = WhisperForConditionalGeneration.from_pretrained(
+                self.base_model_id,
+                torch_dtype=torch_dtype,
+                low_cpu_mem_usage=True
+            ).to(self.device)
+
+        # Check for LoRA adapter checkpoint
+        if self.adapter_path and os.path.exists(self.adapter_path) and os.path.exists(os.path.join(self.adapter_path, "adapter_config.json")):
+            try:
+                from peft import PeftModel
+                logger.info(f"Loading fine-tuned LoRA adapter from: {self.adapter_path}...")
+                self.model = PeftModel.from_pretrained(self.model, self.adapter_path)
+                self.is_finetuned = True
+                logger.info("Successfully attached Tetrax Indian-English LoRA fine-tuned weights!")
+            except Exception as e:
+                logger.error(f"Error loading LoRA adapter ({e}), continuing with base model.")
+                self.is_finetuned = False
+        else:
+            logger.info("No fine-tuned LoRA adapter found at configured path. Running with base model.")
+            self.is_finetuned = False
+
+        self.model.eval()
+        logger.info("Tetrax Whisper engine initialized and ready.")
+
+    def load_audio_array(self, audio_input: Union[str, bytes, io.BytesIO, np.ndarray], target_sr: int = 16000) -> np.ndarray:
+        """
+        Converts various audio inputs (file path, raw bytes, BytesIO, or numpy array)
+        into a 16kHz float32 mono numpy array.
+        """
+        if isinstance(audio_input, np.ndarray):
+            audio = audio_input.astype(np.float32)
+            if audio.ndim > 1:
+                audio = np.mean(audio, axis=-1)
+            return audio
+
+        if isinstance(audio_input, (bytes, bytearray)):
+            audio_input = io.BytesIO(audio_input)
+
+        try:
+            # Try soundfile first
+            audio, sr = sf.read(audio_input, dtype="float32")
+            if audio.ndim > 1:
+                audio = np.mean(audio, axis=1)
+            if sr != target_sr:
+                audio = librosa.resample(audio, orig_sr=sr, target_sr=target_sr)
+            return audio
+        except Exception:
+            # Fallback to librosa
+            if isinstance(audio_input, io.BytesIO):
+                audio_input.seek(0)
+            audio, _ = librosa.load(audio_input, sr=target_sr, mono=True)
+            return audio
+
+    def transcribe(
+        self,
+        audio_input: Union[str, bytes, io.BytesIO, np.ndarray],
+        language: str = "en",
+        return_timestamps: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Transcribes audio and returns text, duration, segments, and latency metrics.
+        """
+        t_start = time.perf_counter()
+        audio = self.load_audio_array(audio_input, target_sr=audio_config.sample_rate)
+        duration = len(audio) / float(audio_config.sample_rate)
+
+        if duration < 0.1:
+            return {
+                "text": "",
+                "duration": duration,
+                "segments": [],
+                "processing_time": 0.0,
+                "rtf": 0.0
+            }
+
+        if self.use_faster_whisper and self.fw_model:
+            segments_gen, info = self.fw_model.transcribe(
+                audio,
+                language=language,
+                beam_size=5,
+                word_timestamps=return_timestamps
+            )
+            segments = []
+            full_text_parts = []
+            for idx, s in enumerate(segments_gen):
+                segments.append({
+                    "id": idx,
+                    "start": round(s.start, 2),
+                    "end": round(s.end, 2),
+                    "text": s.text.strip()
+                })
+                full_text_parts.append(s.text.strip())
+            full_text = " ".join(full_text_parts).strip()
+        else:
+            # PyTorch Transformers inference
+            input_features = self.processor(
+                audio,
+                sampling_rate=audio_config.sample_rate,
+                return_tensors="pt"
+            ).input_features
+
+            if self.device == "cuda":
+                input_features = input_features.to(self.device).half()
+            else:
+                input_features = input_features.to(self.device)
+
+            forced_decoder_ids = self.processor.get_decoder_prompt_ids(
+                language=language,
+                task="transcribe"
+            )
+
+            with torch.no_grad():
+                predicted_ids = self.model.generate(
+                    input_features,
+                    forced_decoder_ids=forced_decoder_ids,
+                    max_new_tokens=440,
+                    return_timestamps=return_timestamps
+                )
+
+            full_text = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
+
+            # Timestamp segment extraction
+            segments = []
+            try:
+                # Basic segment mapping
+                segments = [{
+                    "id": 0,
+                    "start": 0.0,
+                    "end": round(duration, 2),
+                    "text": full_text
+                }]
+            except Exception:
+                pass
+
+        t_end = time.perf_counter()
+        processing_time = round(t_end - t_start, 3)
+        rtf = round(processing_time / max(duration, 0.001), 3)
+
+        return {
+            "text": full_text,
+            "duration": round(duration, 2),
+            "segments": segments,
+            "processing_time": processing_time,
+            "rtf": rtf
+        }

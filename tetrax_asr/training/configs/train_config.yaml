@@ -1,0 +1,44 @@
+# Tetrax ASR Whisper Small LoRA Fine-Tuning Configuration
+
+model:
+  base_model_id: "openai/whisper-small"
+  language: "en"
+  task: "transcribe"
+
+lora:
+  r: 32
+  lora_alpha: 64
+  target_modules: ["q_proj", "v_proj", "k_proj", "out_proj"]
+  lora_dropout: 0.05
+  bias: "none"
+
+dataset:
+  name: "ai4bharat/Svarah"
+  split: "test"  # Default published split in Hugging Face
+  train_ratio: 0.80
+  val_ratio: 0.10
+  test_ratio: 0.10
+  seed: 42
+  stratify_column: "primary_language"
+
+training:
+  output_dir: "./checkpoints/tetrax-whisper-small-indian-en"
+  learning_rate: 0.0001
+  warmup_steps: 100
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+  num_train_epochs: 3
+  max_steps: -1
+  evaluation_strategy: "steps"
+  eval_steps: 100
+  save_steps: 100
+  logging_steps: 25
+  save_total_limit: 2
+  fp16: true
+  predict_with_generate: true
+  generation_max_length: 225
+  metric_for_best_model: "wer"
+  greater_is_better: false
+  load_best_model_at_end: true
+  report_to: ["tensorboard"]
