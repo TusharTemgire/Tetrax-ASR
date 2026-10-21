@@ -14,17 +14,28 @@ async def list_models(request: Request):
     engine = getattr(request.app.state, "engine", None)
 
     is_finetuned = engine.is_finetuned if engine else False
-    active_name = "tetrax-stt-indian-en" if is_finetuned else f"{model_config.base_model_id} (base)"
+    active_name = "tetrax-stt-marathi-hindi" if is_finetuned else f"{model_config.base_model_id} (base)"
 
     models = [
         ModelInfo(
-            id="tetrax-stt-indian-en",
-            name="Tetrax Indian-English Speech Intelligence (LoRA)",
+            id="tetrax-stt-marathi-hindi",
+            name="Tetrax Marathi & Hindi Speech Intelligence (Whisper-Medium + LoRA)",
             base_checkpoint=model_config.base_model_id,
             is_finetuned=is_finetuned,
             adapter_path=model_config.adapter_path,
-            language_focus="English (Indian Accents / Svarah adapted)",
-            architecture="Whisper Transformer + PEFT LoRA",
+            language_focus="Marathi ('mr') & Hindi ('hi') - IndicVoices Adapted",
+            architecture="Whisper Medium Transformer + PEFT LoRA (769M params)",
+            device=model_config.device,
+            compute_type=model_config.compute_type
+        ),
+        ModelInfo(
+            id="openai/whisper-medium",
+            name="Whisper Medium Multilingual Baseline (OpenAI)",
+            base_checkpoint="openai/whisper-medium",
+            is_finetuned=False,
+            adapter_path=None,
+            language_focus="Multilingual (99+ languages)",
+            architecture="Whisper Transformer (769M params)",
             device=model_config.device,
             compute_type=model_config.compute_type
         ),
@@ -36,17 +47,6 @@ async def list_models(request: Request):
             adapter_path=None,
             language_focus="Multilingual",
             architecture="Whisper Transformer (244M params)",
-            device=model_config.device,
-            compute_type=model_config.compute_type
-        ),
-        ModelInfo(
-            id="openai/whisper-base",
-            name="Whisper Base Baseline (OpenAI)",
-            base_checkpoint="openai/whisper-base",
-            is_finetuned=False,
-            adapter_path=None,
-            language_focus="Multilingual",
-            architecture="Whisper Transformer (74M params)",
             device=model_config.device,
             compute_type=model_config.compute_type
         ),

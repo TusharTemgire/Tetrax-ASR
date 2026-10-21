@@ -16,8 +16,8 @@ router = APIRouter(prefix="/v1/audio", tags=["Audio"])
 async def transcribe_audio(
     request: Request,
     file: UploadFile = File(..., description="Audio file (WAV, MP3, M4A, WEBM, FLAC)"),
-    model: Optional[str] = Form(default="tetrax-stt-indian-en"),
-    language: Optional[str] = Form(default="en"),
+    model: Optional[str] = Form(default="tetrax-stt-marathi-hindi"),
+    language: Optional[str] = Form(default="mr"),
     timestamps: Optional[bool] = Form(default=True),
 ):
     engine = getattr(request.app.state, "engine", None)
@@ -31,7 +31,7 @@ async def transcribe_audio(
     try:
         res = engine.transcribe(
             audio_input=content,
-            language=language or "en",
+            language=language if language != "auto" else None,
             return_timestamps=timestamps if timestamps is not None else True
         )
     except Exception as e:
@@ -48,12 +48,12 @@ async def transcribe_audio(
         for s in res.get("segments", [])
     ]
 
-    model_display_name = "tetrax-stt-indian-en" if engine.is_finetuned else f"{model} (base)"
+    model_display_name = "tetrax-stt-marathi-hindi" if engine.is_finetuned else f"{model} (base)"
 
     return TranscriptionResponse(
         id=task_id,
         model=model_display_name,
-        language=language or "en",
+        language=res.get("language", language or "mr"),
         text=res.get("text", ""),
         duration=res.get("duration", 0.0),
         segments=segments,

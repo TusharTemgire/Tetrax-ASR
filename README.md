@@ -1,23 +1,28 @@
-# 🎙️ Tetrax ASR — Real-Time Indian-English Speech Intelligence
+# 🎙️ Tetrax ASR — Marathi, Hindi & Indian-English Speech Intelligence
 
-Tetrax ASR is a real-time speech-to-text intelligence system adapted for Indian-accented English, built for integration into Tetrax CPaaS. It combines an adapted Whisper model fine-tuned using **PEFT / LoRA (Low-Rank Adaptation)** on the **AI4Bharat Svarah** dataset, a **FastAPI backend with low-latency WebSocket streaming**, and an **interactive Voice Intelligence Console**.
+Tetrax ASR is a real-time speech-to-text intelligence system adapted for **Marathi (`mr`)**, **Hindi (`hi`)**, and Indian-accented English, built for integration into Tetrax CPaaS. It combines **`openai/whisper-medium` (769M multilingual parameters)** fine-tuned using **PEFT / LoRA (Low-Rank Adaptation)** on the **AI4Bharat IndicVoices** dataset, a **FastAPI backend with low-latency WebSocket streaming**, and an **interactive Voice Intelligence Console**.
 
 ---
 
 ## 🌟 Key Capabilities
 
+- **Bilingual Marathi (`mr`) + Hindi (`hi`) Speech Recognition**:
+  - Direct Devanagari text transcription optimized on AI4Bharat IndicVoices.
+  - Automatic language detection or explicit language specification (`mr` or `hi`).
+  - Evaluated on Word Error Rate (WER) and Character Error Rate (CER) for Devanagari scripts.
+- **Whisper Medium (769M) with LoRA Adaptation**:
+  - Leverages OpenAI's 769M parameter multilingual backbone.
+  - Memory-optimized with gradient checkpointing and FP16 for Google Colab's free 15GB T4 GPU.
+- **Persistent Dataset Loading from Google Drive**:
+  - Place your parquet files in Google Drive (`MyDrive/Tetrax-ASR/data/marathi/` and `data/hindi/`) once; training automatically loads them without re-downloading.
 - **Real-Time Streaming Speech Recognition (`WS /v1/audio/stream`)**:
   - Live microphone / audio streaming with chunked sliding-window decoding (256ms audio packets).
   - Energy-based Voice Activity Detection (VAD) with silence commit triggers.
   - Generates instant **interim hypotheses** and finalized **committed text segments** in real-time.
 - **REST Transcription API (`POST /v1/audio/transcriptions`)**:
-  - Batch transcription for WAV, MP3, M4A, WEBM, and FLAC files.
-  - Word & sentence timestamps, duration metrics, and usage accounting.
-- **Trained on AI4Bharat Svarah**:
-  - Optimized for Indian English accents across 19 Indian states and native languages (Hindi, Marathi, Tamil, Telugu, Bengali, Kannada, etc.).
+  - Batch transcription for WAV, MP3, M4A, WEBM, and FLAC files with timestamped segments.
 - **Cloud & Local Training Ready**:
   - 📘 **[Google Colab Training Guide](docs/COLAB_TRAINING_GUIDE.md)**: Free T4 GPU fine-tuning in ~15-30 minutes.
-  - 🚀 **[RunPod Training & Hosting Guide](docs/RUNPOD_TRAINING_GUIDE.md)**: Dedicated cloud GPU (RTX 3090/4090) fine-tuning in ~10 minutes and public API hosting.
 
 ---
 
@@ -29,13 +34,12 @@ Tetrax-ASR/
 │   ├── COLAB_TRAINING_GUIDE.md               # Complete Colab setup & execution guide
 │   └── RUNPOD_TRAINING_GUIDE.md              # RunPod setup, training & cloud API hosting
 ├── checkpoints/                              # Saved LoRA checkpoints
-│   └── tetrax-whisper-small-indian-en/       # Fine-tuned adapter weights
-├── data/                                     # AI4Bharat Svarah dataset
-│   ├── test-00000-of-00003.parquet           # Svarah Parquet Part 1 (~365MB)
-│   ├── test-00001-of-00003.parquet           # Svarah Parquet Part 2 (~360MB)
-│   └── test-00002-of-00003.parquet           # Svarah Parquet Part 3 (~370MB)
+│   └── tetrax-whisper-medium-marathi-hindi/  # Fine-tuned adapter weights
+├── data/                                     # Local dataset directory (or mounted Drive)
+│   ├── marathi/                              # IndicVoices Marathi parquet files
+│   └── hindi/                                # IndicVoices Hindi parquet files
 ├── notebooks/
-│   └── Tetrax_ASR_Colab_FineTuning.ipynb     # Google Colab fine-tuning notebook
+│   └── Tetrax_ASR_Colab_FineTuning.ipynb     # Whisper Medium Colab fine-tuning notebook
 ├── scripts/
 │   ├── download_svarah.py                    # Dataset explorer & statistics CLI
 │   └── test_realtime_stream.py               # Real-time WebSocket streaming tester

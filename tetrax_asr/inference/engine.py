@@ -101,7 +101,7 @@ class TetraxWhisperEngine:
                 logger.info(f"Loading fine-tuned LoRA adapter from: {self.adapter_path}...")
                 self.model = PeftModel.from_pretrained(self.model, self.adapter_path)
                 self.is_finetuned = True
-                logger.info("Successfully attached Tetrax Indian-English LoRA fine-tuned weights!")
+                logger.info("Successfully attached Tetrax Marathi + Hindi Whisper-Medium LoRA fine-tuned weights!")
             except Exception as e:
                 logger.error(f"Error loading LoRA adapter ({e}), continuing with base model.")
                 self.is_finetuned = False
@@ -144,11 +144,12 @@ class TetraxWhisperEngine:
     def transcribe(
         self,
         audio_input: Union[str, bytes, io.BytesIO, np.ndarray],
-        language: str = "en",
+        language: Optional[str] = "mr",
         return_timestamps: bool = True,
     ) -> Dict[str, Any]:
         """
-        Transcribes audio and returns text, duration, segments, and latency metrics.
+        Transcribes audio and returns text, language, duration, segments, and latency metrics.
+        Supports Marathi ('mr'), Hindi ('hi'), or None (for automatic language detection).
         """
         t_start = time.perf_counter()
         audio = self.load_audio_array(audio_input, target_sr=audio_config.sample_rate)
@@ -157,6 +158,7 @@ class TetraxWhisperEngine:
         if duration < 0.1:
             return {
                 "text": "",
+                "language": language or "mr",
                 "duration": duration,
                 "segments": [],
                 "processing_time": 0.0,
@@ -170,6 +172,7 @@ class TetraxWhisperEngine:
                 beam_size=5,
                 word_timestamps=return_timestamps
             )
+            detected_lang = getattr(info, "language", language) or language
             segments = []
             full_text_parts = []
             for idx, s in enumerate(segments_gen):
@@ -181,6 +184,7 @@ class TetraxWhisperEngine:
                 })
                 full_text_parts.append(s.text.strip())
             full_text = " ".join(full_text_parts).strip()
+            final_lang = detected_lang
         else:
             # PyTorch Transformers inference
             input_features = self.processor(
@@ -194,10 +198,15 @@ class TetraxWhisperEngine:
             else:
                 input_features = input_features.to(self.device)
 
-            forced_decoder_ids = self.processor.get_decoder_prompt_ids(
-                language=language,
-                task="transcribe"
-            )
+            forced_decoder_ids = None
+            if language:
+                try:
+                    forced_decoder_ids = self.processor.get_decoder_prompt_ids(
+                        language=language,
+                        task="transcribe"
+                    )
+                except Exception:
+                    forced_decoder_ids = None
 
             with torch.no_grad():
                 predicted_ids = self.model.generate(
@@ -208,19 +217,15 @@ class TetraxWhisperEngine:
                 )
 
             full_text = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
+            final_lang = language or "auto"
 
             # Timestamp segment extraction
-            segments = []
-            try:
-                # Basic segment mapping
-                segments = [{
-                    "id": 0,
-                    "start": 0.0,
-                    "end": round(duration, 2),
-                    "text": full_text
-                }]
-            except Exception:
-                pass
+            segments = [{
+                "id": 0,
+                "start": 0.0,
+                "end": round(duration, 2),
+                "text": full_text
+            }]
 
         t_end = time.perf_counter()
         processing_time = round(t_end - t_start, 3)
@@ -228,6 +233,7 @@ class TetraxWhisperEngine:
 
         return {
             "text": full_text,
+            "language": final_lang,
             "duration": round(duration, 2),
             "segments": segments,
             "processing_time": processing_time,

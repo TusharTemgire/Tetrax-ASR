@@ -30,10 +30,11 @@ class AudioConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    base_model_id: str = "openai/whisper-small"
-    fallback_model_id: str = "openai/whisper-base"
-    adapter_path: str = str(CHECKPOINTS_DIR / "tetrax-whisper-small-indian-en")
-    language: str = "en"
+    base_model_id: str = "openai/whisper-medium"
+    fallback_model_id: str = "openai/whisper-small"
+    adapter_path: str = str(CHECKPOINTS_DIR / "tetrax-whisper-medium-marathi-hindi")
+    language: str = "mr"  # Default primary language (supports 'mr', 'hi')
+    supported_languages: list[str] = ["mr", "hi"]
     task: str = "transcribe"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     compute_type: str = "float16" if torch.cuda.is_available() else "float32"
@@ -49,8 +50,9 @@ class APIConfig(BaseModel):
 
 
 class TrainingConfig(BaseModel):
-    dataset_name: str = "ai4bharat/Svarah"
-    dataset_split: str = "test"  # Default published split
+    dataset_name: str = "ai4bharat/IndicVoices"
+    languages: list[str] = ["mr", "hi"]
+    dataset_split: str = "train"
     train_ratio: float = 0.80
     val_ratio: float = 0.10
     test_ratio: float = 0.10
@@ -60,10 +62,11 @@ class TrainingConfig(BaseModel):
     lora_dropout: float = 0.05
     learning_rate: float = 1e-4
     num_train_epochs: int = 3
-    per_device_train_batch_size: int = 8
-    gradient_accumulation_steps: int = 2
+    per_device_train_batch_size: int = 1  # Fits Whisper-Medium (769M) safely on 15GB T4 GPU
+    gradient_accumulation_steps: int = 8  # Effective batch size = 8
+    gradient_checkpointing: bool = True  # Critical for T4 GPU VRAM management
     fp16: bool = torch.cuda.is_available()
-    output_dir: str = str(CHECKPOINTS_DIR / "tetrax-whisper-small-indian-en")
+    output_dir: str = str(CHECKPOINTS_DIR / "tetrax-whisper-medium-marathi-hindi")
 
 
 audio_config = AudioConfig()

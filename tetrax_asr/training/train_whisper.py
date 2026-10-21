@@ -18,7 +18,7 @@ from transformers import (
 from peft import LoraConfig, get_peft_model
 import logging
 
-from tetrax_asr.data.svarah_loader import prepare_svarah_dataset_dict, extract_audio_array
+from tetrax_asr.data.indicvoices_loader import prepare_indicvoices_dataset_dict, extract_audio_array
 from tetrax_asr.data.collator import DataCollatorSpeechSeq2SeqWithPadding
 from tetrax_asr.config import model_config, training_config
 
@@ -27,30 +27,33 @@ logger = logging.getLogger("TetraxASR.Train")
 
 
 def train(
-    base_model_id: str = "openai/whisper-small",
-    output_dir: str = "./checkpoints/tetrax-whisper-small-indian-en",
+    base_model_id: str = "openai/whisper-medium",
+    output_dir: str = "./checkpoints/tetrax-whisper-medium-marathi-hindi",
     num_train_epochs: int = 3,
-    batch_size: int = 8,
-    gradient_accumulation_steps: int = 2,
+    batch_size: int = 1,
+    gradient_accumulation_steps: int = 8,
     learning_rate: float = 1e-4,
     lora_r: int = 32,
     lora_alpha: int = 64,
     fp16: bool = True,
+    languages: list[str] = None,
     drive_dir: str = None,
 ):
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+    target_langs = languages or ["mr", "hi"]
 
-    logger.info(f"Loading processor for {base_model_id}...")
+    logger.info(f"Loading processor for multilingual {base_model_id}...")
     processor = WhisperProcessor.from_pretrained(
         base_model_id,
-        language="en",
+        language="mr",
         task="transcribe"
     )
 
-    # 1. Prepare Dataset
-    logger.info("Loading Svarah dataset and splitting...")
-    dataset_dict = prepare_svarah_dataset_dict(
+    # 1. Prepare IndicVoices Marathi + Hindi Dataset
+    logger.info(f"Loading IndicVoices dataset for {target_langs} and splitting...")
+    dataset_dict = prepare_indicvoices_dataset_dict(
+        languages=target_langs,
         train_ratio=training_config.train_ratio,
         val_ratio=training_config.val_ratio,
         test_ratio=training_config.test_ratio,
@@ -58,11 +61,16 @@ def train(
     )
 
     def prepare_dataset_batch(batch):
-        audio_arr, sr = extract_audio_array(batch["audio_filepath"], target_sr=16000)
+        audio_col = batch["audio_filepath"] if "audio_filepath" in batch else batch.get("audio")
+        audio_arr, sr = extract_audio_array(audio_col, target_sr=16000)
         batch["input_features"] = processor.feature_extractor(
             audio_arr,
             sampling_rate=sr
         ).input_features[0]
+
+        # Condition decoder tokens on the sample language ('mr' or 'hi')
+        sample_lang = batch.get("language", "mr")
+        processor.tokenizer.set_prefix_tokens(language=sample_lang, task="transcribe")
         batch["labels"] = processor.tokenizer(batch["text"]).input_ids
         return batch
 
@@ -80,8 +88,9 @@ def train(
 
     data_collator = DataCollatorSpeechSeq2SeqWithPadding(processor=processor)
 
-    # 2. Metric Computation (WER)
+    # 2. Metric Computation: WER and CER (Character Error Rate for Devanagari text)
     wer_metric = evaluate.load("wer")
+    cer_metric = evaluate.load("cer")
 
     def compute_metrics(pred):
         pred_ids = pred.predictions
@@ -93,9 +102,10 @@ def train(
         label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)
 
         wer = 100 * wer_metric.compute(predictions=pred_str, references=label_str)
-        return {"wer": wer}
+        cer = 100 * cer_metric.compute(predictions=pred_str, references=label_str)
+        return {"wer": wer, "cer": cer}
 
-    # 3. Model & LoRA Setup
+    # 3. Model & LoRA Setup (Whisper Medium with Gradient Checkpointing)
     logger.info(f"Loading base model: {base_model_id}...")
     model = WhisperForConditionalGeneration.from_pretrained(
         base_model_id,
@@ -107,6 +117,10 @@ def train(
     model.config.forced_decoder_ids = None
     model.config.suppress_tokens = []
 
+    # Enable gradient checkpointing to fit Whisper Medium (769M) into 15GB T4 GPU
+    if torch.cuda.is_available():
+        model.gradient_checkpointing_enable()
+
     lora_config = LoraConfig(
         r=lora_r,
         lora_alpha=lora_alpha,
@@ -115,7 +129,7 @@ def train(
         bias="none"
     )
 
-    logger.info("Applying LoRA adapter to Whisper model...")
+    logger.info("Applying LoRA adapter to Whisper Medium...")
     model = get_peft_model(model, lora_config)
     model.print_trainable_parameters()
 
@@ -134,6 +148,7 @@ def train(
         save_steps=100,
         eval_steps=100,
         logging_steps=25,
+        gradient_checkpointing=True,
         report_to=["tensorboard"],
         load_best_model_at_end=True,
         metric_for_best_model="wer",
@@ -201,11 +216,12 @@ def train(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train Whisper LoRA on Svarah")
-    parser.add_argument("--base_model", type=str, default="openai/whisper-small")
-    parser.add_argument("--output_dir", type=str, default="./checkpoints/tetrax-whisper-small-indian-en")
+    parser = argparse.ArgumentParser(description="Train Whisper Medium LoRA on IndicVoices (Marathi + Hindi)")
+    parser.add_argument("--base_model", type=str, default="openai/whisper-medium")
+    parser.add_argument("--output_dir", type=str, default="./checkpoints/tetrax-whisper-medium-marathi-hindi")
     parser.add_argument("--epochs", type=int, default=3)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=1)
+    parser.add_argument("--grad_accum", type=int, default=8)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--drive_dir", type=str, default="/content/drive/MyDrive/Tetrax-ASR/checkpoints", help="Google Drive destination directory")
     args = parser.parse_args()
@@ -215,6 +231,7 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         num_train_epochs=args.epochs,
         batch_size=args.batch_size,
+        gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.lr,
         drive_dir=args.drive_dir,
     )
