@@ -103,6 +103,7 @@ def extract_audio_array(sample_audio, target_sr: int = 16000) -> Tuple[np.ndarra
 def load_raw_indicvoices(
     languages: Optional[List[str]] = None,
     base_dir: Optional[Path] = None,
+    max_files_per_lang: Optional[int] = None,
     streaming: bool = False
 ):
     """
@@ -120,7 +121,11 @@ def load_raw_indicvoices(
         lang_files = local_files.get(norm_lang, [])
 
         if lang_files:
-            logger.info(f"Loading local IndicVoices {norm_lang} from {len(lang_files)} parquet file(s)...")
+            if max_files_per_lang and len(lang_files) > max_files_per_lang:
+                logger.info(f"Using {max_files_per_lang} of {len(lang_files)} local IndicVoices {norm_lang} parquet files...")
+                lang_files = lang_files[:max_files_per_lang]
+            else:
+                logger.info(f"Loading local IndicVoices {norm_lang} from {len(lang_files)} parquet file(s)...")
             ds = load_dataset("parquet", data_files=lang_files, split="train")
         else:
             logger.info(f"Loading ai4bharat/IndicVoices ({hf_config_name}) from Hugging Face Hub (streaming={streaming})...")
@@ -203,6 +208,7 @@ def prepare_indicvoices_dataset_dict(
     train_ratio: float = 0.80,
     val_ratio: float = 0.10,
     test_ratio: float = 0.10,
+    max_files_per_lang: Optional[int] = None,
     seed: int = 42,
     save_dir: Optional[str] = None
 ) -> DatasetDict:
@@ -210,7 +216,7 @@ def prepare_indicvoices_dataset_dict(
     Full pipeline: Loads Marathi & Hindi IndicVoices, splits into train/val/test,
     and optionally saves to local disk.
     """
-    raw_ds = load_raw_indicvoices(languages=languages)
+    raw_ds = load_raw_indicvoices(languages=languages, max_files_per_lang=max_files_per_lang)
     train_ds, val_ds, test_ds = split_indicvoices_dataset(
         raw_ds,
         train_ratio=train_ratio,
