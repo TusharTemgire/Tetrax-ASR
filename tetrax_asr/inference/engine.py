@@ -95,12 +95,25 @@ class TetraxWhisperEngine:
             ).to(self.device)
 
         # Check for LoRA adapter checkpoint
-        if self.adapter_path and os.path.exists(self.adapter_path) and os.path.exists(os.path.join(self.adapter_path, "adapter_config.json")):
+        candidate_paths = [
+            self.adapter_path,
+            str(Path(self.adapter_path).parent / "TETRAX-ASR-WHISPER-MEDIUM-769M") if self.adapter_path else None,
+            str(Path(self.adapter_path).parent / "tetrax-whisper-medium-marathi-hindi") if self.adapter_path else None,
+            str(Path(self.adapter_path).parent / "tetrax-whisper-small-indian-en") if self.adapter_path else None,
+        ]
+        chosen_adapter = None
+        for p in candidate_paths:
+            if p and os.path.exists(p) and os.path.exists(os.path.join(p, "adapter_config.json")):
+                chosen_adapter = p
+                break
+
+        if chosen_adapter:
             try:
                 from peft import PeftModel
-                logger.info(f"Loading fine-tuned LoRA adapter from: {self.adapter_path}...")
-                self.model = PeftModel.from_pretrained(self.model, self.adapter_path)
+                logger.info(f"Loading fine-tuned LoRA adapter from: {chosen_adapter}...")
+                self.model = PeftModel.from_pretrained(self.model, chosen_adapter)
                 self.is_finetuned = True
+                self.adapter_path = chosen_adapter
                 logger.info("Successfully attached Tetrax Marathi + Hindi Whisper-Medium LoRA fine-tuned weights!")
             except Exception as e:
                 logger.error(f"Error loading LoRA adapter ({e}), continuing with base model.")

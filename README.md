@@ -22,6 +22,7 @@ Tetrax ASR is a real-time speech-to-text intelligence system adapted for **Marat
 - **REST Transcription API (`POST /v1/audio/transcriptions`)**:
   - Batch transcription for WAV, MP3, M4A, WEBM, and FLAC files with timestamped segments.
 - **Cloud & Local Training Ready**:
+  - 📖 **[Colab Step-by-Step Guide](docs/COLAB_STEP_BY_STEP_GUIDE.md)**: Detailed walkthrough for `TETRAX-ASR-WHISPER-MEDIUM-769M` with token size breakdown & model usage.
   - 📘 **[Google Colab Training Guide](docs/COLAB_TRAINING_GUIDE.md)**: Free T4 GPU fine-tuning in ~15-30 minutes.
 
 ---
