@@ -43,22 +43,33 @@ This guide walks you through fine-tuning **Whisper-Small** (or Whisper-Base) on 
 
 ### Step 3: Dataset Loading Options in Colab
 
-The notebook supports **two ways** to load the dataset:
+The notebook supports multiple convenient ways to load the dataset:
 
-#### Option A: Direct Hugging Face Load (Zero File Upload Needed — Recommended)
-- By default, the notebook will automatically fetch `ai4bharat/Svarah` from Hugging Face Hub.
-- No file upload or download from your computer is needed.
-
-#### Option B: Use Your Local Parquet Files
-If you prefer using the 3 parquet files from your local `data/` folder (`test-00000-of-00003.parquet`, etc.):
-1. In the Colab file explorer (left sidebar icon), drag and drop the 3 `test-*.parquet` files into `/content/`.
-2. OR, if they are stored in your Google Drive, mount Drive:
+#### Option A: Persistent Google Drive Storage (Recommended for Colab)
+If you manually download or place the dataset in Google Drive, you **never** have to re-download it again across different Colab sessions:
+1. Mount your Google Drive in Step 2:
    ```python
    from google.colab import drive
    drive.mount('/content/drive')
    ```
-   and place them in `/content/drive/MyDrive/Tetrax-ASR/data/`.
-3. The notebook automatically detects these parquet files and loads them instantly without re-downloading!
+2. Place your parquet files (`*.parquet` or `test-*.parquet`) into:
+   ```
+   /content/drive/MyDrive/Tetrax-ASR/data/
+   ```
+3. **One-Time Direct Download to Drive (Zero PC Bandwidth)**:
+   You can also let Colab download directly into your Drive once:
+   ```python
+   from datasets import load_dataset
+   ds = load_dataset("ai4bharat/Svarah", split="test")
+   ds.to_parquet("/content/drive/MyDrive/Tetrax-ASR/data/test-00000-of-00001.parquet")
+   ```
+4. The notebook automatically detects any parquet file (or Hugging Face disk dataset) inside `/content/drive/MyDrive/Tetrax-ASR/data/` and loads it directly into RAM without downloading from Hugging Face Hub!
+
+#### Option B: Direct Hugging Face Load (Zero File Upload Needed)
+- If no files are placed in Google Drive or `/content/`, the notebook automatically streams/fetches `ai4bharat/Svarah` directly from Hugging Face Hub.
+
+#### Option C: Temporary Session Upload
+- You can also drag-and-drop your parquet files into `/content/` in the left sidebar file manager. Note that `/content/` resets when the Colab session disconnects.
 
 ---
 

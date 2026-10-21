@@ -21,10 +21,12 @@ logger = logging.getLogger("TetraxASR.Data")
 
 
 def get_local_parquet_files() -> List[str]:
-    """Finds any Svarah parquet files placed in data/ directory."""
+    """Finds any Svarah parquet files placed in data/ directory or subdirectories."""
     files = sorted(glob.glob(str(DATA_DIR / "test-*.parquet")))
     if not files:
         files = sorted(glob.glob(str(DATA_DIR / "*.parquet")))
+    if not files:
+        files = sorted(glob.glob(str(DATA_DIR / "**/*.parquet"), recursive=True))
     return files
 
 

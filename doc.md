@@ -295,3 +295,180 @@ Real-time streaming transcription API
 Both REST and streaming APIs
 
 Build my implementation plan
+
+
+# Train Whisper Medium for Marathi + Hindi on Google Colab T4
+
+Yes. You can use Option B — Whisper Medium on your 15 GB T4 GPU to build a multilingual speech-to-text model specifically optimized for Marathi and Hindi.
+
+For your Tetrax project, I recommend building a model that accepts Marathi or Hindi speech and returns text in the same language. You can later expose it as a paid API service.
+
+One important change: Svarah should not be your primary training dataset. It contains English speech from Indian speakers, not Marathi- and Hindi-language transcripts. You need datasets containing actual Marathi and Hindi audio paired with transcripts.
+
+## 1. What you can achieve
+
+[Design of a Handwritten Devanagari Typeface – Kimya Gandhi. किमया गांधी](https://images.openai.com/static-rsc-4/UZngl2U1bXRYhiUhPAtwJWAsjOl1kgx-9qEsa2YD3OxsvbRgAZsVCxu_1jRYYF9hd182TW-kJ9elA9hTDhG9hyyv59hjCMp8QGISqkXstLYQquYLB1h4fCH8SilD6F-1hoCEY5Z8ylH4-lWCYd2qu3X7zO2UkQzsm3nhNtij8-g?purpose=inline)
+
+Marathi Speech-to-Text
+
+Convert spoken Marathi into Marathi Devanagari text, including everyday conversations and recordings represented in your training data.
+
+[Hindi, Marathi and  Nepali Fonts: South Asian Language Resource Center](https://images.openai.com/static-rsc-4/VbJ5F2XaPUPW5DH-3mqcvq0JEue19nxAGrmhQnlL1bfR6g7NURdbmUbpQPSgLiEMFnfR1tYyHpvca4FjUTZ0DvUGfHWsiu7wXkfZTDkS--iK_xUD9xUuxcHXeHw-xEplnJtQiP5pTIM194jdy9FEEWZDfRKLxRdjhL_ZaP0jOnQ?purpose=inline)
+
+Hindi Speech-to-Text
+
+Transcribe Hindi speech into Hindi Devanagari text, including conversational audio represented in your training data.
+
+[Real-Time Hindi Meeting Transcription with Tactiq](https://images.openai.com/static-rsc-4/fp7H8BEBbjTDq5xbAw6RhWQzd-61kVhq58NWd4KAHuFdVbhv5Fs_w8Hg5Q_dK_bvL3UFhRMqrE3cnX28ThCooxzQZXgaHqe3QqavUbexiOj8L9ubUb9cr_t94pHHP9ppvrTDJcD5UDvWTEJjFBSPPqKTELk9EvmVpdyeiqJrDPE?purpose=inline)
+
+One bilingual model
+
+A single fine-tuned Whisper Medium checkpoint can recognize both languages. You do not necessarily need two separate models.
+
+You can aim for:
+
+- File-based transcription through a REST API.
+- Automatic language detection, or an explicit `language=mr` / `language=hi` parameter.
+- Timestamped transcripts and subtitle generation.
+- A later WebSocket service for live captions.
+
+Fine-tuning improves performance only if your data, evaluation and training setup support it. It does not guarantee better accuracy than the original Whisper model.
+
+## 2. Which datasets should you use?
+
+I recommend combining a primary training dataset with an independent evaluation dataset.
+
+[AI4Bharat](https://images.openai.com/static-rsc-4/sjfCt819_o2QTOOg4d1eXcuDe4K3T1--UMBr3AV6J6lcd3sVnSjFAAz9_wxRvAorKW63XxU4eol9htx4pmcGjfjNMyqzoVrqqS_LwxHZcmcnRXdDwd5L2uDdsCIFnOWAfaPnVoJpIgw1YXkXUZkj4Cas5TdLidkb-i5VpeyPFnc?purpose=inline)
+
+### Dataset 1 — IndicVoices
+
+Primary training dataset
+
+Marathi + Hindi · Audio with transcripts
+
+My first choice. It contains natural, spontaneous and conversational Indian speech. The published dataset includes separate Marathi and Hindi configurations and training/validation splits. Access requires accepting the dataset conditions and sharing contact information.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://huggingface.co\&sz=32)
+
+Datasets at Hugging Face
+
++1
+
+
+
+[Open IndicVoices on Hugging Face](https://huggingface.co/datasets/ai4bharat/IndicVoices?utm_source=chatgpt.com)
+
+[Common Voice: Mozilla veröffentlicht den bisher größten öffentlichen transkribierten Sprachdatensatz – Mozilla Presse-Center](https://images.openai.com/static-rsc-4/_WUn9G39XeAxBms9PW53b6ruW45JPGXyiDu0qda7G8jQlEE98nqXySrgt1PTtu1Sq0wfmpYMJgBSKEpwiOPurBG7RdYdBMpzBdGFkYjuYIlKtj28MMT1_eTKgaazeHVQSjoLrXlqbvhbauC_UMe6tujr19hwP_IoRElOAtHAb-A?purpose=inline)
+
+### Dataset 2 — Common Voice
+
+Additional training data or evaluation
+
+Use the Hindi and Marathi releases if their current availability, licensing, transcripts and audio quality suit your project. This can broaden speaker and recording diversity.
+
+[Open Mozilla Common Voice](https://commonvoice.mozilla.org/?utm_source=chatgpt.com)
+
+[google/fleurs · Datasets at Hugging Face](https://images.openai.com/static-rsc-4/wTi8V5N5gCayLZ9lnInTVuy2G-Grz-fabkUTeQYDxWv_ehH-Gut4fF0piOK87e13WxKEeKJN94g2B5Nn_Dqy6cKpYMyCC24QjtVY6sDRZN1BPILfzWZNXpypbHXeT8pooq3imHWtmqsiLsY0HkhsQ5IIbfzP-HUmd-S7nf4f1DQ?purpose=inline)
+
+### Dataset 3 — FLEURS
+
+Independent evaluation
+
+Use the Hindi and Marathi subsets to measure recognition quality on a consistent multilingual benchmark. Keep this data separate from your training set.
+
+[Open FLEURS on Hugging Face](https://huggingface.co/datasets/google/fleurs?utm_source=chatgpt.com)
+
+### How much data do you need?
+
+For a first experiment on your T4, use a manageable subset rather than downloading every recording.
+
+| Experiment                 | Marathi                          | Hindi                            | Purpose                                    |
+| -------------------------- | -------------------------------- | -------------------------------- | ------------------------------------------ |
+| Pipeline smoke test        | 100–300 clips                    | 100–300 clips                    | Confirm preprocessing and training work    |
+| Initial LoRA experiment    | 1–5 hours                        | 1–5 hours                        | Test whether fine-tuning helps             |
+| More meaningful experiment | 10–50+ hours                     | 10–50+ hours                     | Improve coverage and assess generalization |
+| Production-grade model     | As much quality data as feasible | As much quality data as feasible | Optimize against real customer audio       |
+
+These are practical starting targets, not guaranteed thresholds for good accuracy. Dataset diversity, transcript quality, duration distribution and speaker coverage matter as much as raw hours.
+
+## 3. How to load Marathi and Hindi data in Colab
+
+The IndicVoices repository reports approximately 745 GB across its full release. You do not need all of that: load only Marathi and Hindi, and begin with a small experiment.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://huggingface.co\&sz=32)
+
+Datasets at Hugging Face
+
++1
+
+
+
+First, accept the dataset conditions on Hugging Face and authenticate in Colab.
+
+```
+!pip install -U datasets huggingface_hub
+```
+
+```
+from huggingface_hub import notebook_loginnotebook_login()
+```
+
+Then inspect the Marathi dataset:
+
+```
+from datasets import load_datasetmarathi = load_dataset(    "ai4bharat/IndicVoices",    "marathi",    split="train",    streaming=True)sample = next(iter(marathi))print("Columns:", sample.keys())for key, value in sample.items():    if key not in ("audio_filepath", "audio"):        print(key, str(value)[:200])
+```
+
+Inspect Hindi in the same way:
+
+```
+hindi = load_dataset(    "ai4bharat/IndicVoices",    "hindi",    split="train",    streaming=True)print(next(iter(hindi)).keys())
+```
+
+Streaming lets you inspect examples without downloading the entire split first. Before training, verify the audio and transcript fields, durations, language labels and available metadata against the current dataset schema. Streaming is useful for inspection; a shuffled, bounded, reproducible training subset or a properly prepared local dataset is generally easier to use for controlled experiments.
+
+## 4. Which model should you train?
+
+Use the multilingual checkpoint, not the English-only version.
+
+Recommended base checkpoint
+
+## openai/whisper-medium
+
+769 million parameters · Multilingual ASR · Supports Hindi and Marathi
+
+[Model card and documentation](https://huggingface.co/openai/whisper-medium?utm_source=chatgpt.com)
+
+Initial training settings
+
+- GPU: Colab NVIDIA T4, 15 GB VRAM
+- Fine-tuning: LoRA / PEFT
+- Precision: FP16
+- Batch size: 1
+- Gradient accumulation: 8
+- Gradient checkpointing: enabled
+- Initial training: a few hundred examples, then a small multi-hour subset
+- Save checkpoints and logs to Google Drive
+
+The exact settings may need adjustment to avoid CUDA out-of-memory errors. Validate the training loop before scaling up.
+
+For one bilingual model, use the appropriate language prompt for each sample: `marathi` for Marathi and `hindi` for Hindi, with the transcription task set to `transcribe`. Preserve the language identity in your dataset manifest so you can evaluate both languages separately.
+
+## 5. How to measure whether your model is improving
+
+Track these metrics independently for Marathi and Hindi:
+
+- WER (Word Error Rate): lower is better.
+- CER (Character Error Rate): useful for diagnosing errors in Devanagari text.
+- Inference speed: seconds required to transcribe a given duration of audio.
+- Generalization: results on unseen speakers and recordings.
+
+Compare three systems: original Whisper Medium, fine-tuned Whisper Medium, and—if practical—Whisper Small fine-tuned on the same data. This will tell you whether the larger model's accuracy justifies its higher serving cost.
+
+## 6. My final recommendation for Tetrax
+
+Start with one multilingual Whisper Medium model, fine-tuned on separate Marathi and Hindi training samples from IndicVoices. Use Common Voice as an additional data source if needed, and FLEURS or another genuinely held-out dataset for evaluation.
+
+Once the model performs reliably, deploy it behind a FastAPI service with language selection, audio upload, transcription output, API keys and usage metering.
+
+The key next step is to verify that IndicVoices loads successfully in your Colab and inspect its actual audio/transcript schema before writing the training notebook. That avoids wasting your limited GPU session on a dataset-preparation error.
