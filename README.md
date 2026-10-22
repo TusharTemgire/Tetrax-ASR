@@ -22,6 +22,7 @@ Tetrax ASR is a real-time speech-to-text intelligence system adapted for **Marat
 - **REST Transcription API (`POST /v1/audio/transcriptions`)**:
   - Batch transcription for WAV, MP3, M4A, WEBM, and FLAC files with timestamped segments.
 - **Cloud & Local Training Ready**:
+  - 📖 **[Colab Step-by-Step Setup README](notebooks/README.md)**: Dedicated step-by-step setup guide for Google Colab fine-tuning.
   - 📖 **[Colab Step-by-Step Guide](docs/COLAB_STEP_BY_STEP_GUIDE.md)**: Detailed walkthrough for `TETRAX-ASR-WHISPER-MEDIUM-769M` with token size breakdown & model usage.
   - 📘 **[Google Colab Training Guide](docs/COLAB_TRAINING_GUIDE.md)**: Free T4 GPU fine-tuning in ~15-30 minutes.
 
@@ -33,6 +34,7 @@ Tetrax ASR is a real-time speech-to-text intelligence system adapted for **Marat
 Tetrax-ASR/
 ├── docs/                                     # In-depth training & deployment guides
 │   ├── COLAB_TRAINING_GUIDE.md               # Complete Colab setup & execution guide
+│   ├── COLAB_STEP_BY_STEP_GUIDE.md           # Model architecture & usage guide
 │   └── RUNPOD_TRAINING_GUIDE.md              # RunPod setup, training & cloud API hosting
 ├── checkpoints/                              # Saved LoRA checkpoints
 │   └── tetrax-whisper-medium-marathi-hindi/  # Fine-tuned adapter weights
@@ -40,6 +42,7 @@ Tetrax-ASR/
 │   ├── marathi/                              # IndicVoices Marathi parquet files
 │   └── hindi/                                # IndicVoices Hindi parquet files
 ├── notebooks/
+│   ├── README.md                             # Step-by-step Colab setup guide
 │   └── Tetrax_ASR_Colab_FineTuning.ipynb     # Whisper Medium Colab fine-tuning notebook
 ├── scripts/
 │   ├── download_svarah.py                    # Dataset explorer & statistics CLI
