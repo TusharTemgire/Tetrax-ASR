@@ -1,7 +1,7 @@
 # 🎙️ Google Colab Step-by-Step Training & Usage Guide
-## Model: `TETRAX-ASR-WHISPER-MEDIUM-769M` (Marathi + Hindi Bilingual)
+## Model: `Tetrax-ASR-Open-764M-A19M` (Marathi + Hindi Bilingual)
 
-This guide provides a complete, step-by-step walkthrough to train **`openai/whisper-medium` (769M parameters)** on **AI4Bharat IndicVoices (Marathi & Hindi)** using Google Colab's Free T4 GPU, save the model as **`TETRAX-ASR-WHISPER-MEDIUM-769M.zip`** directly to your Google Drive, and run it locally in your Tetrax ASR project.
+This guide provides a complete, step-by-step walkthrough to train **`openai/whisper-medium` (769M parameters)** on **AI4Bharat IndicVoices (Marathi & Hindi)** using Google Colab's Free T4 GPU, save the model as **`Tetrax-ASR-Open-764M-A19M.zip`** directly to your Google Drive, and run it locally in your Tetrax ASR project.
 
 ---
 
@@ -105,10 +105,10 @@ When training finishes, Step 9 runs automatically and displays:
 ```text
 ========================================================================
 🎉 MODEL SUCCESSFULLY TRAINED AND SAVED!
-  • Model Name    : TETRAX-ASR-WHISPER-MEDIUM-769M
+  • Model Name    : Tetrax-ASR-Open-764M-A19M
   • Parameter Size: 769M Parameters (~0.8B Backbone, ~8.3M Trainable LoRA)
   • Languages     : Marathi ('mr') + Hindi ('hi') [Devanagari text]
-  • Saved to Drive: /content/drive/MyDrive/Tetrax-ASR/checkpoints/TETRAX-ASR-WHISPER-MEDIUM-769M.zip
+  • Saved to Drive: /content/drive/MyDrive/Tetrax-ASR/checkpoints/Tetrax-ASR-Open-764M-A19M.zip
   • ZIP File Size : ~80 MB
 ========================================================================
 ```
@@ -118,8 +118,8 @@ Your fine-tuned model is permanently preserved in your **Google Drive**:
 My Drive/
 └── Tetrax-ASR/
     └── checkpoints/
-        ├── TETRAX-ASR-WHISPER-MEDIUM-769M.zip
-        └── TETRAX-ASR-WHISPER-MEDIUM-769M/
+        ├── Tetrax-ASR-Open-764M-A19M.zip
+        └── Tetrax-ASR-Open-764M-A19M/
             ├── adapter_config.json
             ├── adapter_model.safetensors
             ├── tokenizer_config.json
@@ -133,12 +133,12 @@ My Drive/
 ### Method 1: Place the Checkpoint in Your Local Project
 
 1. Open your Google Drive in a web browser.
-2. Go to `Tetrax-ASR/checkpoints/` and download `TETRAX-ASR-WHISPER-MEDIUM-769M.zip`.
+2. Go to `Tetrax-ASR/checkpoints/` and download `Tetrax-ASR-Open-764M-A19M.zip`.
 3. Extract the ZIP into your local repository under `checkpoints/`:
    ```text
    Tetrax-ASR/
    └── checkpoints/
-       └── TETRAX-ASR-WHISPER-MEDIUM-769M/
+       └── Tetrax-ASR-Open-764M-A19M/
            ├── adapter_config.json
            ├── adapter_model.safetensors
            ├── tokenizer_config.json
@@ -154,7 +154,7 @@ You can use the fine-tuned model directly inside any Python script:
 ```python
 from tetrax_asr.inference.engine import TetraxWhisperEngine
 
-# 1. Initialize the engine (automatically detects TETRAX-ASR-WHISPER-MEDIUM-769M)
+# 1. Initialize the engine (automatically detects Tetrax-ASR-Open-764M-A19M)
 engine = TetraxWhisperEngine()
 
 # 2. Transcribe a Marathi audio file

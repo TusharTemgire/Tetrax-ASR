@@ -15,7 +15,7 @@ import numpy as np
 import soundfile as sf
 import librosa
 
-from tetrax_asr.config import model_config, audio_config
+from tetrax_asr.config import model_config, audio_config, BASE_DIR, CHECKPOINTS_DIR
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("TetraxASR.Inference")
@@ -60,7 +60,12 @@ class TetraxWhisperEngine:
                 return
             except Exception as e:
                 logger.warning(f"Could not initialize Faster-Whisper ({e}), falling back to PyTorch Transformers.")
-                self.use_faster_whisper = False
+        # Check if user has generated a 100% standalone merged model
+        merged_path = BASE_DIR / "Tetrax-ASR-Merged-764M"
+        is_merged = (merged_path / "model.safetensors").exists()
+        if is_merged:
+            logger.info(f"Found standalone merged model at: {merged_path}")
+            self.base_model_id = str(merged_path)
 
         from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
@@ -94,12 +99,25 @@ class TetraxWhisperEngine:
                 low_cpu_mem_usage=True
             ).to(self.device)
 
+        if is_merged:
+            self.is_finetuned = True
+            self.model.eval()
+            logger.info("Tetrax Whisper engine initialized with standalone merged model.")
+            return
+
         # Check for LoRA adapter checkpoint
         candidate_paths = [
             self.adapter_path,
+            str(BASE_DIR / "Tetrax-ASR-Open-764M-A19M"),
+            str(CHECKPOINTS_DIR / "Tetrax-ASR-Open-764M-A19M"),
+            str(BASE_DIR / "TETRAX-ASR_MODEL-769M"),
+            str(BASE_DIR / "TETRAX-ASR-WHISPER-MEDIUM-769M"),
+            str(CHECKPOINTS_DIR / "TETRAX-ASR_MODEL-769M"),
+            str(CHECKPOINTS_DIR / "TETRAX-ASR-WHISPER-MEDIUM-769M"),
+            str(CHECKPOINTS_DIR / "tetrax-whisper-medium-marathi-hindi"),
+            str(Path(self.adapter_path).parent / "Tetrax-ASR-Open-764M-A19M") if self.adapter_path else None,
+            str(Path(self.adapter_path).parent / "TETRAX-ASR_MODEL-769M") if self.adapter_path else None,
             str(Path(self.adapter_path).parent / "TETRAX-ASR-WHISPER-MEDIUM-769M") if self.adapter_path else None,
-            str(Path(self.adapter_path).parent / "tetrax-whisper-medium-marathi-hindi") if self.adapter_path else None,
-            str(Path(self.adapter_path).parent / "tetrax-whisper-small-indian-en") if self.adapter_path else None,
         ]
         chosen_adapter = None
         for p in candidate_paths:
@@ -211,25 +229,22 @@ class TetraxWhisperEngine:
             else:
                 input_features = input_features.to(self.device)
 
-            forced_decoder_ids = None
+            gen_kwargs = {
+                "max_new_tokens": 440,
+                "return_timestamps": return_timestamps,
+            }
             if language:
-                try:
-                    forced_decoder_ids = self.processor.get_decoder_prompt_ids(
-                        language=language,
-                        task="transcribe"
-                    )
-                except Exception:
-                    forced_decoder_ids = None
+                gen_kwargs["language"] = language
+                gen_kwargs["task"] = "transcribe"
 
             with torch.no_grad():
-                predicted_ids = self.model.generate(
-                    input_features,
-                    forced_decoder_ids=forced_decoder_ids,
-                    max_new_tokens=440,
-                    return_timestamps=return_timestamps
-                )
+                predicted_ids = self.model.generate(input_features, **gen_kwargs)
 
-            full_text = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
+            full_text = self.processor.batch_decode(
+                predicted_ids,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=False
+            )[0].strip()
             final_lang = language or "auto"
 
             # Timestamp segment extraction

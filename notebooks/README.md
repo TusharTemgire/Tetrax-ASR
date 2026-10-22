@@ -1,5 +1,5 @@
 # 🎙️ Google Colab Fine-Tuning Guide (Step-by-Step)
-## Model: `TETRAX-ASR-WHISPER-MEDIUM-769M` (Marathi + Hindi Bilingual)
+## Model: `Tetrax-ASR-Open-764M-A19M` (Marathi + Hindi Bilingual)
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com)
 ![Whisper Medium](https://img.shields.io/badge/Model-Whisper--Medium%20(769M)-blue.svg)
@@ -74,7 +74,7 @@ My Drive/
     │       ├── 001.parquet
     │       └── ...
     └── checkpoints/
-        └── TETRAX-ASR-WHISPER-MEDIUM-769M.zip   <-- (Auto-saved here after training)
+        └── Tetrax-ASR-Open-764M-A19M.zip   <-- (Auto-saved here after training)
 ```
 
 > [!NOTE]
@@ -209,7 +209,7 @@ model = get_peft_model(model, peft_config)
 Launches the memory and speed-optimized fine-tuning loop:
 ```python
 training_args = Seq2SeqTrainingArguments(
-    output_dir="/content/TETRAX-ASR-WHISPER-MEDIUM-769M",
+    output_dir="/content/Tetrax-ASR-Open-764M-A19M",
     per_device_train_batch_size=2,        # Utilizes available VRAM for 2x faster throughput
     gradient_accumulation_steps=4,        # Effective batch size = 8
     learning_rate=1e-4,
@@ -234,7 +234,7 @@ trainer.train()
 ### Step 11: Export Model & Download (Step 9 Cell)
 When training finishes, this cell automatically:
 1. Saves the trained LoRA adapter weights and tokenizer files.
-2. Compresses the checkpoint into **`TETRAX-ASR-WHISPER-MEDIUM-769M.zip`** (~80 MB).
+2. Compresses the checkpoint into **`Tetrax-ASR-Open-764M-A19M.zip`** (~80 MB).
 3. Saves a permanent copy to your Google Drive under `MyDrive/Tetrax-ASR/checkpoints/`.
 4. Triggers an automatic browser download of the `.zip` archive.
 
@@ -249,7 +249,7 @@ Extract the contents into your project's `checkpoints/` directory:
 ```text
 Tetrax-ASR/
 └── checkpoints/
-    └── TETRAX-ASR-WHISPER-MEDIUM-769M/
+    └── Tetrax-ASR-Open-764M-A19M/
         ├── adapter_config.json
         ├── adapter_model.safetensors
         ├── special_tokens_map.json
@@ -264,7 +264,7 @@ from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from peft import PeftModel
 
 BASE_MODEL = "openai/whisper-medium"
-ADAPTER_PATH = "./checkpoints/TETRAX-ASR-WHISPER-MEDIUM-769M"
+ADAPTER_PATH = "./checkpoints/Tetrax-ASR-Open-764M-A19M"
 
 # Load processor and base model
 processor = WhisperProcessor.from_pretrained(BASE_MODEL, language="mr", task="transcribe")

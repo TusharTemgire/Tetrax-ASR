@@ -29,10 +29,27 @@ class AudioConfig(BaseModel):
     silence_duration_commit: float = 0.8  # Seconds of silence to commit final segment
 
 
+def get_default_adapter_path() -> str:
+    """Finds the trained LoRA adapter directory automatically."""
+    candidates = [
+        BASE_DIR / "Tetrax-ASR-Open-764M-A19M",
+        CHECKPOINTS_DIR / "Tetrax-ASR-Open-764M-A19M",
+        BASE_DIR / "TETRAX-ASR_MODEL-769M",
+        BASE_DIR / "TETRAX-ASR-WHISPER-MEDIUM-769M",
+        CHECKPOINTS_DIR / "TETRAX-ASR_MODEL-769M",
+        CHECKPOINTS_DIR / "TETRAX-ASR-WHISPER-MEDIUM-769M",
+        CHECKPOINTS_DIR / "tetrax-whisper-medium-marathi-hindi",
+    ]
+    for c in candidates:
+        if c.exists() and (c / "adapter_config.json").exists():
+            return str(c)
+    return str(CHECKPOINTS_DIR / "tetrax-whisper-medium-marathi-hindi")
+
+
 class ModelConfig(BaseModel):
     base_model_id: str = "openai/whisper-medium"
     fallback_model_id: str = "openai/whisper-small"
-    adapter_path: str = str(CHECKPOINTS_DIR / "tetrax-whisper-medium-marathi-hindi")
+    adapter_path: str = get_default_adapter_path()
     language: str = "mr"  # Default primary language (supports 'mr', 'hi')
     supported_languages: list[str] = ["mr", "hi"]
     task: str = "transcribe"

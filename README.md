@@ -145,22 +145,67 @@ For high-speed training (RTX 3090/4090) in **~10 minutes** or hosting a public c
 
 ## 🎯 How to Use Your Fine-Tuned Model (Post-Training Guide)
 
-Once your model has finished training in Google Colab or RunPod, follow these steps to use it:
+Your trained model checkpoint is located at:
+```text
+D:\Tushar_repos\Tetrax-ASR\Tetrax-ASR-Open-764M-A19M\
+├── adapter_config.json
+├── adapter_model.safetensors  (~75.6 MB LoRA weights, 18.87M active parameters)
+├── processor_config.json
+├── tokenizer_config.json
+└── tokenizer.json
+```
 
-### Step 1: Place Your Model Checkpoint
-1. Download `tetrax-whisper-small-indian-en.zip` from Colab/Drive.
-2. Extract it into your project under `checkpoints/`:
-   ```
-   Tetrax-ASR/
-   └── checkpoints/
-       └── tetrax-whisper-small-indian-en/
-           ├── adapter_config.json
-           ├── adapter_model.safetensors
-           ├── tokenizer_config.json
-           ├── special_tokens_map.json
-           └── vocab.json
-   ```
-3. Whenever the Tetrax ASR service starts, it **automatically detects and attaches** your fine-tuned LoRA weights.
+### 1. Transcribe Any Audio File from CLI
+You can immediately transcribe any audio file (WAV, MP3, FLAC) in Marathi or Hindi using the CLI:
+```bash
+# Transcribe Marathi audio
+python scripts/transcribe.py --audio "path/to/marathi_speech.wav" --lang mr
+
+# Transcribe Hindi audio
+python scripts/transcribe.py --audio "path/to/hindi_speech.mp3" --lang hi
+```
+
+### 2. Start the Interactive Web Console & REST Server
+```bash
+python -m uvicorn tetrax_asr.api.main:app --host 0.0.0.0 --port 8000
+```
+- The server will automatically load `Tetrax-ASR-Open-764M-A19M` upon startup.
+- Visit **http://localhost:8000** for real-time microphone streaming and file drag-and-drop transcription.
+
+### 3. Programmatic Python Usage
+```python
+import torch
+from transformers import WhisperProcessor, WhisperForConditionalGeneration
+from peft import PeftModel
+import soundfile as sf
+import librosa
+
+BASE_MODEL = "openai/whisper-medium"
+ADAPTER_PATH = "D:/Tushar_repos/Tetrax-ASR/Tetrax-ASR-Open-764M-A19M"
+
+processor = WhisperProcessor.from_pretrained(BASE_MODEL, language="mr", task="transcribe")
+model = WhisperForConditionalGeneration.from_pretrained(
+    BASE_MODEL,
+    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+    device_map="auto"
+)
+model = PeftModel.from_pretrained(model, ADAPTER_PATH)
+model.eval()
+
+# Load audio
+audio, sr = sf.read("sample.wav", dtype="float32")
+if sr != 16000:
+    audio = librosa.resample(audio, orig_sr=sr, target_sr=16000)
+
+inputs = processor(audio, sampling_rate=16000, return_tensors="pt").input_features
+if torch.cuda.is_available():
+    inputs = inputs.half().cuda()
+
+with torch.no_grad():
+    predicted_ids = model.generate(inputs, language="mr", task="transcribe")
+
+transcript = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
+```
 
 ---
 
