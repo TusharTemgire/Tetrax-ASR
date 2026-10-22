@@ -61,7 +61,19 @@ def train(
     )
 
     def prepare_dataset_batch(batch):
-        audio_col = batch["audio_filepath"] if "audio_filepath" in batch else batch.get("audio")
+        # Prioritize audio struct with actual payload (bytes/array) over plain string path
+        audio_col = None
+        for key in ["audio", "audio_filepath", "audio_path", "file"]:
+            val = batch.get(key)
+            if isinstance(val, dict) and (val.get("bytes") or val.get("array") is not None or val.get("path")):
+                audio_col = val
+                break
+            elif isinstance(val, (str, bytes)) and (isinstance(val, bytes) or os.path.exists(str(val))):
+                audio_col = val
+                break
+            elif audio_col is None and val is not None:
+                audio_col = val
+
         audio_arr, sr = extract_audio_array(audio_col, target_sr=16000)
         batch["input_features"] = processor.feature_extractor(
             audio_arr,
@@ -70,8 +82,13 @@ def train(
 
         # Condition decoder tokens on the sample language ('mr' or 'hi')
         sample_lang = batch.get("language", "mr")
+        if sample_lang in (0, "0"):
+            sample_lang = "mr"
+        elif sample_lang in (1, "1"):
+            sample_lang = "hi"
         processor.tokenizer.set_prefix_tokens(language=sample_lang, task="transcribe")
-        batch["labels"] = processor.tokenizer(batch["text"]).input_ids
+        text_content = batch.get("text") or batch.get("normalized_text") or ""
+        batch["labels"] = processor.tokenizer(text_content).input_ids
         return batch
 
     logger.info("Mapping features and tokenizing labels on train and validation splits...")

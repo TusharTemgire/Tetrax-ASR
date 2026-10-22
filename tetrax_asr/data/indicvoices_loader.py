@@ -89,6 +89,14 @@ def extract_audio_array(sample_audio, target_sr: int = 16000) -> Tuple[np.ndarra
                 arr = librosa.resample(arr, orig_sr=orig_sr, target_sr=target_sr)
             return arr, target_sr
 
+    elif isinstance(sample_audio, bytes) and len(sample_audio) > 0:
+        arr, orig_sr = sf.read(io.BytesIO(sample_audio), dtype="float32")
+        if arr.ndim > 1:
+            arr = np.mean(arr, axis=1)
+        if orig_sr != target_sr:
+            arr = librosa.resample(arr, orig_sr=orig_sr, target_sr=target_sr)
+        return arr, target_sr
+
     elif isinstance(sample_audio, str) and os.path.exists(sample_audio):
         arr, orig_sr = sf.read(sample_audio, dtype="float32")
         if arr.ndim > 1:
