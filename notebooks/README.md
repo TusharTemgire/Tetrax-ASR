@@ -299,10 +299,13 @@ Visit `http://localhost:8000/docs` to test real-time bilingual transcription end
 
 ## ❓ Troubleshooting & FAQs
 
-### Q1: Colab runs out of GPU memory (CUDA OOM)
-- Ensure `gradient_checkpointing_enable()` is executed in Step 7.
-- Keep `per_device_train_batch_size = 1` and rely on `gradient_accumulation_steps = 8` for effective batch size.
-- Ensure `fp16 = True` is set.
+### Q1: Colab runs out of GPU memory (CUDA OOM in `torch_pad_and_concatenate`)
+- **Evaluation Accumulation OOM**: Whisper has 51,865 vocabulary tokens. During evaluation, raw unreduced logits take ~23 MB *per sample*, accumulating to 5.7+ GiB on the GPU at step 100 and triggering CUDA OOM.
+- **Fix**:
+  1. Pass `preprocess_logits_for_metrics` to reduce logits to token IDs (`argmax`) immediately on the GPU (reducing memory by >50,000x).
+  2. Set `eval_accumulation_steps=1` in `Seq2SeqTrainingArguments` to offload evaluation predictions to CPU RAM immediately.
+  3. Evaluate on a fast representative subset (`eval_subset = tokenized_val.select(range(min(200, len(tokenized_val))))`) to drop evaluation time from 15 minutes down to ~30 seconds.
+  4. Keep `per_device_train_batch_size = 1`, `gradient_accumulation_steps = 8`, and `gradient_checkpointing = True`.
 
 ### Q2: Colab runs out of System RAM during dataset loading
 - Colab Free tier provides ~12.7 GB of System RAM.
