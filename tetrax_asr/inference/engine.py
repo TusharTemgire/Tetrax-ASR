@@ -16,6 +16,16 @@ import numpy as np
 import soundfile as sf
 import librosa
 
+# Force offline loading - strictly prevent any outbound HTTP pings to Hugging Face
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
+# Silence noisy HTTP connection and cache checking logs
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+
 # Suppress informational generation deprecation notices
 warnings.filterwarnings("ignore", message=".*max_new_tokens.*")
 warnings.filterwarnings("ignore", message=".*forced_decoder_ids.*")
@@ -25,6 +35,7 @@ warnings.filterwarnings("ignore", message=".*generation_config.*")
 try:
     from transformers.utils import logging as hf_logging
     hf_logging.set_verbosity_error()
+    hf_logging.disable_progress_bar()
 except Exception:
     pass
 
@@ -82,35 +93,54 @@ class TetraxWhisperEngine:
 
         from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
-        logger.info(f"Loading WhisperProcessor for {self.base_model_id}...")
-        self.processor = WhisperProcessor.from_pretrained(
-            self.base_model_id,
-            language=model_config.language,
-            task=model_config.task
-        )
+        logger.info(f"Loading WhisperProcessor for {self.base_model_id} (offline)...")
+        try:
+            self.processor = WhisperProcessor.from_pretrained(
+                self.base_model_id,
+                language=model_config.language,
+                task=model_config.task,
+                local_files_only=True,
+            )
+        except Exception:
+            self.processor = WhisperProcessor.from_pretrained(
+                self.base_model_id,
+                language=model_config.language,
+                task=model_config.task,
+            )
 
         torch_dtype = torch.float16 if self.device == "cuda" else torch.float32
-        logger.info(f"Loading WhisperForConditionalGeneration ({self.base_model_id}) on {self.device} ({torch_dtype})...")
+        logger.info(f"Loading Whisper weights ({self.base_model_id}) on {self.device} ({torch_dtype})...")
 
         try:
             self.model = WhisperForConditionalGeneration.from_pretrained(
                 self.base_model_id,
                 torch_dtype=torch_dtype,
-                low_cpu_mem_usage=True
+                low_cpu_mem_usage=True,
+                local_files_only=True,
             ).to(self.device)
         except Exception as e:
-            logger.warning(f"Failed loading {self.base_model_id} ({e}), falling back to {model_config.fallback_model_id}")
-            self.base_model_id = model_config.fallback_model_id
-            self.processor = WhisperProcessor.from_pretrained(
-                self.base_model_id,
-                language=model_config.language,
-                task=model_config.task
-            )
-            self.model = WhisperForConditionalGeneration.from_pretrained(
-                self.base_model_id,
-                torch_dtype=torch_dtype,
-                low_cpu_mem_usage=True
-            ).to(self.device)
+            logger.warning(f"Could not load local weights directly ({e}), checking fallback...")
+            try:
+                self.model = WhisperForConditionalGeneration.from_pretrained(
+                    self.base_model_id,
+                    torch_dtype=torch_dtype,
+                    low_cpu_mem_usage=True,
+                ).to(self.device)
+            except Exception as e2:
+                logger.warning(f"Failed loading {self.base_model_id} ({e2}), falling back to {model_config.fallback_model_id}")
+                self.base_model_id = model_config.fallback_model_id
+                self.processor = WhisperProcessor.from_pretrained(
+                    self.base_model_id,
+                    language=model_config.language,
+                    task=model_config.task,
+                    local_files_only=True,
+                )
+                self.model = WhisperForConditionalGeneration.from_pretrained(
+                    self.base_model_id,
+                    torch_dtype=torch_dtype,
+                    low_cpu_mem_usage=True,
+                    local_files_only=True,
+                ).to(self.device)
 
         if is_merged:
             self.is_finetuned = True
@@ -144,7 +174,7 @@ class TetraxWhisperEngine:
             try:
                 from peft import PeftModel
                 logger.info(f"Loading fine-tuned LoRA adapter from: {chosen_adapter}...")
-                self.model = PeftModel.from_pretrained(self.model, chosen_adapter)
+                self.model = PeftModel.from_pretrained(self.model, chosen_adapter, local_files_only=True)
                 self.is_finetuned = True
                 self.adapter_path = chosen_adapter
                 logger.info("Successfully attached Tetrax Marathi + Hindi Whisper-Medium LoRA fine-tuned weights!")

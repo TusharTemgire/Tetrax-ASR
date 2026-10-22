@@ -36,19 +36,20 @@ def merge_and_export():
         print(f"❌ Error: Adapter path does not exist: {ADAPTER_DIR}")
         return
 
-    print("\n1. Loading base Whisper-Medium model into RAM...")
+    print("\n1. Loading base Whisper-Medium model into RAM (offline)...")
     start = time.time()
     base_model = WhisperForConditionalGeneration.from_pretrained(
         BASE_MODEL,
         torch_dtype=torch.float32,
-        low_cpu_mem_usage=True
+        low_cpu_mem_usage=True,
+        local_files_only=True,
     )
-    processor = WhisperProcessor.from_pretrained(BASE_MODEL)
+    processor = WhisperProcessor.from_pretrained(BASE_MODEL, local_files_only=True)
     print(f"   Base model loaded in {time.time() - start:.2f}s")
 
     print("\n2. Attaching fine-tuned LoRA adapter...")
     start = time.time()
-    peft_model = PeftModel.from_pretrained(base_model, ADAPTER_DIR)
+    peft_model = PeftModel.from_pretrained(base_model, ADAPTER_DIR, local_files_only=True)
     print(f"   LoRA adapter attached in {time.time() - start:.2f}s")
 
     print("\n3. Merging LoRA weights directly into base layers (merge_and_unload)...")

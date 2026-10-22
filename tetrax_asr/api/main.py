@@ -9,14 +9,26 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+import os
 import logging
 import warnings
+
+# Force offline loading - strictly prevent any outbound HTTP pings to Hugging Face
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+
+# Silence noisy HTTP connection and cache checking logs
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
 
 # Suppress informational Hugging Face generation notices
 warnings.filterwarnings("ignore")
 try:
     from transformers.utils import logging as hf_logging
     hf_logging.set_verbosity_error()
+    hf_logging.disable_progress_bar()
 except Exception:
     pass
 
