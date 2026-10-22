@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tetrax ASR — Real-Time Indian-English Speech Intelligence</title>
+  <title>Tetrax ASR — Marathi & Hindi Speech Intelligence (Tetrax-ASR-Open-764M-A19M)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
@@ -21,7 +21,7 @@
       </div>
       <div>
         <span class="brand-title">Tetrax ASR</span>
-        <span class="brand-badge">Voice Intelligence</span>
+        <span class="brand-badge">मराठी • हिंदी</span>
       </div>
     </div>
 
@@ -34,7 +34,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
         </svg>
-        Colab Fine-Tuning Guide
+        Colab Fine-Tuning Guide (IndicVoices)
       </a>
     </div>
   </header>
@@ -59,7 +59,7 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
           <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"></path>
         </svg>
-        Colab Training & Svarah
+        Colab Training &amp; IndicVoices
       </button>
     </div>
 
@@ -67,24 +67,33 @@
     <div class="tab-pane active" id="tab-streaming">
       <div class="dashboard-grid">
         <div class="glass-card">
-          <div class="stream-control-bar">
+          <div class="stream-control-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
             <div>
               <h2 style="font-size:1.2rem; font-weight:700;">Live Speech Stream</h2>
-              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;" id="streamStatus">Ready to Stream</p>
+              <p style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;" id="streamStatus">Ready to Stream (Marathi / Hindi)</p>
             </div>
-            <button class="btn-stream" id="streamBtn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path>
-                <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path>
-              </svg>
-              Start Live Speech Stream
-            </button>
+            
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label for="streamLangSelect" style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Language:</label>
+              <select id="streamLangSelect" class="lang-select">
+                <option value="mr" selected>Marathi (मराठी)</option>
+                <option value="hi">Hindi (हिंदी)</option>
+              </select>
+
+              <button class="btn-stream" id="streamBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path>
+                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path>
+                </svg>
+                Start Live Speech Stream
+              </button>
+            </div>
           </div>
 
           <canvas class="visualizer-canvas" id="visualizer" width="600" height="70"></canvas>
 
           <div class="card-title">
-            <span>Live Captions & Interim Hypothesis</span>
+            <span>Live Captions &amp; Interim Hypothesis (Devanagari)</span>
             <button class="status-pill" onclick="document.getElementById('committedCaptions').innerHTML=''; document.getElementById('interimCaption').textContent='';" style="cursor:pointer; border:none;">Clear</button>
           </div>
 
@@ -99,7 +108,23 @@
           <h3 class="card-title">ASR Engine Profile</h3>
           <div class="info-row">
             <span class="info-label">Active Model</span>
-            <span id="activeModelBadge"><span class="svarah-pill">Loading...</span></span>
+            <span id="activeModelBadge"><span class="model-pill">Loading...</span></span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Base Backbone</span>
+            <span class="info-val">openai/whisper-medium (764M)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Active LoRA Adapter</span>
+            <span class="info-val">18.87M Parameters (A19M)</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Training Dataset</span>
+            <span class="info-val">AI4Bharat IndicVoices</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Target Script</span>
+            <span class="info-val">Devanagari (देवनागरी)</span>
           </div>
           <div class="info-row">
             <span class="info-label">Sample Rate</span>
@@ -110,22 +135,14 @@
             <span class="info-val">WebSocket (PCM 16-bit)</span>
           </div>
           <div class="info-row">
-            <span class="info-label">VAD Energy Gate</span>
-            <span class="info-val">0.008 RMS</span>
-          </div>
-          <div class="info-row">
             <span class="info-label">Silence Commit</span>
             <span class="info-val">800 ms</span>
           </div>
-          <div class="info-row">
-            <span class="info-label">Language</span>
-            <span class="info-val">en (Indian English)</span>
-          </div>
 
-          <div style="margin-top:1.5rem; padding:12px; border-radius:8px; background:rgba(56,189,248,0.06); border:1px solid rgba(56,189,248,0.2);">
-            <div style="font-weight:600; font-size:0.85rem; color:var(--accent-cyan); margin-bottom:4px;">Real-Time Optimization</div>
+          <div style="margin-top:1.5rem; padding:12px; border-radius:8px; background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.25);">
+            <div style="font-weight:600; font-size:0.85rem; color:#10b981; margin-bottom:4px;">Devanagari Bilingual ASR</div>
             <p style="font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
-              Chunked sliding window processes 256ms audio packets. Speech detection automatically triggers interim preview before committing finalized sentences.
+              Chunked sliding window processes 256ms audio packets. Tuned on conversational IndicVoices Marathi &amp; Hindi speech for high phonetic fidelity.
             </p>
           </div>
         </div>
@@ -135,10 +152,23 @@
     <!-- Tab 2: File Transcription -->
     <div class="tab-pane" id="tab-upload">
       <div class="glass-card">
-        <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.5rem;">Recorded Audio File Transcription</h2>
-        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">
-          Upload WAV, MP3, M4A, WEBM, or FLAC files to run through Tetrax Whisper with timestamped segment breakdown.
-        </p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:1.5rem;">
+          <div>
+            <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:0.25rem;">Recorded Audio File Transcription</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted);">
+              Upload WAV, MP3, M4A, WEBM, or FLAC files to transcribe in Marathi or Hindi with timestamped segment breakdown.
+            </p>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label for="uploadLangSelect" style="font-size:0.85rem; color:var(--text-muted); font-weight:500;">Language:</label>
+            <select id="uploadLangSelect" class="lang-select">
+              <option value="mr" selected>Marathi (मराठी)</option>
+              <option value="hi">Hindi (हिंदी)</option>
+              <option value="auto">Auto-Detect</option>
+            </select>
+          </div>
+        </div>
 
         <div class="upload-dropzone" id="uploadDropzone">
           <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -146,7 +176,7 @@
             <polyline points="17 8 12 3 7 8"></polyline>
             <line x1="12" y1="3" x2="12" y2="15"></line>
           </svg>
-          <div style="font-weight:600; font-size:1rem; margin-bottom:4px;">Drag & Drop audio file here, or click to browse</div>
+          <div style="font-weight:600; font-size:1rem; margin-bottom:4px;">Drag &amp; Drop audio file here, or click to browse</div>
           <div style="font-size:0.8rem; color:var(--text-dim);" id="selectedFileName">Supports WAV, MP3, M4A, WEBM up to 50MB</div>
           <input type="file" id="audioFileInput" accept="audio/*" style="display:none;">
         </div>
@@ -166,7 +196,7 @@
         <!-- Result Card -->
         <div id="fileResultCard" style="display:none; margin-top:2rem; border-top:1px solid var(--border-subtle); padding-top:1.5rem;">
           <h3 class="card-title">
-            <span>Transcription Result</span>
+            <span>Transcription Result (Devanagari)</span>
             <button class="status-pill" onclick="navigator.clipboard.writeText(document.getElementById('fileFullText').textContent); alert('Copied to clipboard!');" style="cursor:pointer; border:none;">Copy Text</button>
           </h3>
 
@@ -185,13 +215,13 @@
             </div>
             <div class="metric-card">
               <div class="metric-label">Engine Model</div>
-              <div class="metric-value" id="metaModel" style="font-size:0.9rem;">-</div>
+              <div class="metric-value" id="metaModel" style="font-size:0.85rem;">Tetrax-ASR-Open-764M-A19M</div>
             </div>
           </div>
 
           <div style="margin-top:1.25rem;">
             <div style="font-size:0.8rem; color:var(--text-dim); text-transform:uppercase; font-weight:600; margin-bottom:6px;">Full Text</div>
-            <div id="fileFullText" style="padding:1rem; background:rgba(0,0,0,0.3); border-radius:8px; line-height:1.6; border:1px solid var(--border-subtle);"></div>
+            <div id="fileFullText" style="padding:1rem; background:rgba(0,0,0,0.3); border-radius:8px; line-height:1.7; border:1px solid var(--border-subtle); font-size:1.1rem;"></div>
           </div>
 
           <div style="margin-top:1.25rem;">
@@ -202,7 +232,7 @@
       </div>
     </div>
 
-    <!-- Tab 3: Colab Training & Svarah Dataset -->
+    <!-- Tab 3: Colab Training & IndicVoices Dataset -->
     <div class="tab-pane" id="tab-colab">
       <div class="dashboard-grid">
         <div class="glass-card">
@@ -210,70 +240,72 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="#fbbf24">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
             </svg>
-            Fine-Tuning Tetrax ASR in Google Colab
+            Fine-Tuning Tetrax ASR on IndicVoices
           </h2>
           <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.6; margin-bottom:1.5rem;">
-            You can train and adapt Whisper-Small on Indian-accented English directly inside Google Colab (Free T4 GPU or A100). The self-contained notebook is ready in your repo at <code style="color:var(--accent-cyan);">notebooks/Tetrax_ASR_Colab_FineTuning.ipynb</code>.
+            Trained and adapted on Marathi and Hindi conversational speech from Google Drive using LoRA on Google Colab's Free T4 GPU. The self-contained notebook is available at <code style="color:var(--accent-cyan);">notebooks/Tetrax_ASR_Colab_FineTuning.ipynb</code>.
           </p>
 
           <div style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:8px; padding:1.25rem; margin-bottom:1.5rem;">
             <h4 style="color:#fbbf24; font-size:0.95rem; font-weight:600; margin-bottom:0.5rem;">Quick Colab Workflow Steps</h4>
             <ol style="margin-left:1.25rem; font-size:0.85rem; line-height:1.7; color:var(--text-main);">
               <li>Open Google Colab (<a href="https://colab.research.google.com" target="_blank" style="color:#38bdf8;">colab.research.google.com</a>) and select <strong>Runtime &gt; Change runtime type &gt; T4 GPU</strong>.</li>
-              <li>Upload <code>notebooks/Tetrax_ASR_Colab_FineTuning.ipynb</code> or open directly from GitHub.</li>
-              <li>Run the cells sequentially: it automatically loads <code>ai4bharat/Svarah</code>, splits into train/validation, attaches LoRA adapters (Rank=32), and trains with Seq2SeqTrainer.</li>
-              <li>Download the resulting <code>checkpoints/tetrax-whisper-small-indian-en/</code> folder and place it in your local repository.</li>
-              <li>The Tetrax ASR backend immediately detects and mounts the fine-tuned LoRA weights for both REST and real-time streaming!</li>
+              <li>Upload <code>notebooks/Tetrax_ASR_Colab_FineTuning.ipynb</code>.</li>
+              <li>Step 2 mounts your Google Drive; Step 3 loads Marathi &amp; Hindi Parquet files directly from <code>MyDrive/Tetrax-ASR/data/</code>.</li>
+              <li>Step 5 extracts 80-channel log-Mel spectrograms and tokenizes Devanagari labels.</li>
+              <li>Step 7 attaches LoRA adapters (Rank=32, Alpha=64) to <code>openai/whisper-medium</code>.</li>
+              <li>Step 8 fine-tunes using Seq2SeqTrainer with automatic checkpoint resume and high-throughput T4 batching.</li>
+              <li>Step 9 packages the trained weights into <code>Tetrax-ASR-Open-764M-A19M.zip</code>.</li>
             </ol>
           </div>
 
-          <h3 class="card-title">Training Hyperparameter Recommendations</h3>
+          <h3 class="card-title">Training Hyperparameter Architecture</h3>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
             <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
               <div style="font-size:0.75rem; color:var(--text-dim);">Base Model</div>
-              <div style="font-weight:600; font-size:0.9rem;">openai/whisper-small (244M)</div>
+              <div style="font-weight:600; font-size:0.9rem;">openai/whisper-medium (764M)</div>
             </div>
             <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
               <div style="font-size:0.75rem; color:var(--text-dim);">Adaptation Method</div>
               <div style="font-weight:600; font-size:0.9rem;">PEFT LoRA (r=32, alpha=64)</div>
             </div>
             <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
-              <div style="font-size:0.75rem; color:var(--text-dim);">Batch Size &amp; Accumulation</div>
-              <div style="font-weight:600; font-size:0.9rem;">Batch=8, Grad Accum=2</div>
+              <div style="font-size:0.75rem; color:var(--text-dim);">Active LoRA Weights</div>
+              <div style="font-weight:600; font-size:0.9rem;">18.87M (~19M) Parameters</div>
             </div>
             <div style="background:rgba(0,0,0,0.3); padding:10px; border-radius:6px; border:1px solid var(--border-subtle);">
-              <div style="font-size:0.75rem; color:var(--text-dim);">Target Metric</div>
-              <div style="font-weight:600; font-size:0.9rem;">WER (Word Error Rate)</div>
+              <div style="font-size:0.75rem; color:var(--text-dim);">Evaluation Metrics</div>
+              <div style="font-weight:600; font-size:0.9rem;">WER + CER (Devanagari)</div>
             </div>
           </div>
         </div>
 
-        <!-- Svarah Dataset Card -->
+        <!-- IndicVoices Dataset Card -->
         <div class="glass-card" style="height:fit-content;">
-          <h3 class="card-title">AI4Bharat Svarah Dataset</h3>
+          <h3 class="card-title">AI4Bharat IndicVoices Dataset</h3>
           <div class="info-row">
             <span class="info-label">Dataset ID</span>
-            <span class="info-val">ai4bharat/Svarah</span>
+            <span class="info-val">ai4bharat/IndicVoices</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Total Duration</span>
-            <span class="info-val">~9.6 Hours</span>
+            <span class="info-label">Languages</span>
+            <span class="info-val">Marathi (mr) &amp; Hindi (hi)</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Audio Examples</span>
-            <span class="info-val">6,656 Samples</span>
+            <span class="info-label">Total Audio</span>
+            <span class="info-val">~300+ Hours Conversational</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Unique Speakers</span>
-            <span class="info-val">117 Speakers</span>
+            <span class="info-label">Script System</span>
+            <span class="info-val">Devanagari (मराठी • हिंदी)</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Indian States</span>
-            <span class="info-val">19 States &amp; 65 Districts</span>
+            <span class="info-label">Data Source</span>
+            <span class="info-val">Google Drive Parquet / HuggingFace</span>
           </div>
           <div class="info-row">
-            <span class="info-label">Language</span>
-            <span class="info-val">Indian-Accented English</span>
+            <span class="info-label">Sampling Rate</span>
+            <span class="info-val">16,000 Hz Mono</span>
           </div>
           <div class="info-row">
             <span class="info-label">License</span>
@@ -281,7 +313,7 @@
           </div>
 
           <div style="margin-top:1rem; font-size:0.75rem; color:var(--text-muted); line-height:1.5;">
-            Svarah captures spontaneous Indian English with varied regional phonetics and prosody across Hindi, Marathi, Bengali, Tamil, Telugu, and Kannada native backgrounds.
+            IndicVoices is an open-source, comprehensive conversational speech dataset collected across diverse districts in India, capturing authentic regional accents and native phonetic nuances in Marathi and Hindi.
           </div>
         </div>
       </div>

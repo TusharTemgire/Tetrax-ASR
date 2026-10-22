@@ -17,9 +17,10 @@ class StreamingSession:
     """
     State tracker for an active real-time streaming WebSocket connection.
     """
-    def __init__(self, session_id: str, engine):
+    def __init__(self, session_id: str, engine, language: Optional[str] = None):
         self.session_id = session_id
         self.engine = engine
+        self.language = language or "mr"
         self.sample_rate = audio_config.sample_rate
         self.silence_threshold = audio_config.silence_threshold_energy
         self.silence_commit_sec = audio_config.silence_duration_commit
@@ -84,7 +85,7 @@ class StreamingSession:
         # Periodic interim transcription during active speech
         if self.is_speaking and (now - self.last_interim_time) >= self.interim_interval_sec and current_buffer_duration >= 0.8:
             full_audio = np.concatenate(self.audio_buffer)
-            interim_res = self.engine.transcribe(full_audio, language="en", return_timestamps=False)
+            interim_res = self.engine.transcribe(full_audio, language=self.language, return_timestamps=False)
             text = interim_res.get("text", "").strip()
             if text:
                 events.append({
@@ -111,7 +112,7 @@ class StreamingSession:
         if duration < audio_config.min_speech_duration:
             return None
 
-        res = self.engine.transcribe(full_audio, language="en", return_timestamps=True)
+        res = self.engine.transcribe(full_audio, language=self.language, return_timestamps=True)
         text = res.get("text", "").strip()
 
         if not text:

@@ -77,9 +77,10 @@ async function startStreaming(canvas, canvasCtx) {
   source.connect(analyser);
   drawVisualizer(canvas, canvasCtx);
 
-  // 3. Connect WebSocket
+  // 3. Connect WebSocket with selected language
+  const selectedLang = document.getElementById("streamLangSelect")?.value || "mr";
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = `${protocol}//${window.location.host}/v1/audio/stream`;
+  const wsUrl = `${protocol}//${window.location.host}/v1/audio/stream?language=${selectedLang}`;
   socket = new WebSocket(wsUrl);
 
   socket.binaryType = "arraybuffer";
@@ -93,8 +94,9 @@ async function startStreaming(canvas, canvasCtx) {
       </svg>
       Stop Listening
     `;
-    streamStatus.textContent = "Listening (Indian-English STT Active)";
-    streamStatus.style.color = "#38bdf8";
+    const langLabel = selectedLang === "mr" ? "मराठी (Marathi)" : "हिंदी (Hindi)";
+    streamStatus.textContent = `Listening (${langLabel} Active)`;
+    streamStatus.style.color = "#10b981";
   };
 
   socket.onmessage = (event) => {
@@ -331,10 +333,11 @@ function initFileUpload() {
       Transcribing...
     `;
 
+    const selectedLang = document.getElementById("uploadLangSelect")?.value || "mr";
     const formData = new FormData();
     formData.append("file", selectedFile);
-    formData.append("model", "tetrax-stt-indian-en");
-    formData.append("language", "en");
+    formData.append("model", "Tetrax-ASR-Open-764M-A19M");
+    formData.append("language", selectedLang);
     formData.append("timestamps", "true");
 
     try {
@@ -414,9 +417,9 @@ async function checkSystemStatus() {
     }
 
     if (data.is_finetuned_adapter) {
-      modelBadge.innerHTML = `<span class="svarah-pill" style="color:#38bdf8; border-color:#38bdf8">Tetrax Indian-En (LoRA Active)</span>`;
+      modelBadge.innerHTML = `<span class="model-pill">Tetrax-ASR-Open-764M-A19M (मराठी • हिंदी Active)</span>`;
     } else {
-      modelBadge.innerHTML = `<span class="svarah-pill">Whisper Base (Awaiting LoRA)</span>`;
+      modelBadge.innerHTML = `<span class="model-pill" style="color:#94a3b8; border-color:rgba(255,255,255,0.1)">Whisper Base (Awaiting LoRA)</span>`;
     }
   } catch (e) {
     console.warn("Could not check health:", e);

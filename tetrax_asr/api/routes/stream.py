@@ -17,7 +17,7 @@ router = APIRouter(prefix="/v1/audio", tags=["Streaming"])
 
 
 @router.websocket("/stream")
-async def websocket_stream(websocket: WebSocket):
+async def websocket_stream(websocket: WebSocket, language: str = "mr"):
     await websocket.accept()
     session_id = f"wss_{uuid.uuid4().hex[:8]}"
 
@@ -30,14 +30,15 @@ async def websocket_stream(websocket: WebSocket):
         await websocket.close()
         return
 
-    session = StreamingSession(session_id=session_id, engine=engine)
+    session = StreamingSession(session_id=session_id, engine=engine, language=language)
 
     await websocket.send_json({
         "event": "ready",
         "session_id": session_id,
-        "model": "tetrax-stt-indian-en" if engine.is_finetuned else f"{engine.base_model_id} (base)",
+        "model": "Tetrax-ASR-Open-764M-A19M" if engine.is_finetuned else f"{engine.base_model_id} (base)",
+        "language": language,
         "sample_rate": 16000,
-        "message": "Connected to Tetrax Real-Time ASR Stream."
+        "message": f"Connected to Tetrax Real-Time ASR Stream ({'Marathi' if language == 'mr' else 'Hindi'})."
     })
 
     try:

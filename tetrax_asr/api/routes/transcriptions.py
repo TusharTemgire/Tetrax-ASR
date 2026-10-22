@@ -48,7 +48,7 @@ async def transcribe_audio(
         for s in res.get("segments", [])
     ]
 
-    model_display_name = "tetrax-stt-marathi-hindi" if engine.is_finetuned else f"{model} (base)"
+    model_display_name = "Tetrax-ASR-Open-764M-A19M" if engine.is_finetuned else f"{model} (base)"
 
     return TranscriptionResponse(
         id=task_id,
