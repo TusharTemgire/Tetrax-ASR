@@ -111,6 +111,8 @@ My Drive/
 Run the first code cell to install the required libraries:
 ```bash
 !pip install -q transformers datasets peft accelerate evaluate jiwer soundfile librosa bitsandbytes tensorboard
+# Colab pre-installs an outdated torchao (0.10.0) which conflicts with PEFT (requires >=0.16.0)
+!pip uninstall -y torchao
 ```
 
 ---
@@ -309,7 +311,19 @@ Visit `http://localhost:8000/docs` to test real-time bilingual transcription end
 ### Q3: "Unrecognized audio column format" error during mapping
 - Ensure you are using the updated notebook which includes `extract_raw_audio`. It handles raw binary bytes in Parquet files, nested dictionaries, and file paths automatically.
 
-### Q4: Preventing Colab Timeout / Disconnect during training
+### Q4: "ImportError: Found an incompatible version of torchao"
+- Google Colab pre-installs an outdated `torchao==0.10.0`, whereas recent `peft` versions require `torchao >= 0.16.0`.
+- Even though Whisper LoRA does not use `torchao` quantization, `peft` checks for it.
+- **Immediate Fix (without restarting kernel)**:
+  Run this cell in Colab:
+  ```python
+  !pip uninstall -y torchao
+  import peft.import_utils
+  peft.import_utils.is_torchao_available = lambda: False
+  ```
+- Re-run Step 7, and it will load the model without errors.
+
+### Q5: Preventing Colab Timeout / Disconnect during training
 - Keep the Colab browser tab open and active.
 - Training ~15,000 samples for 3 epochs with LoRA takes approximately 1 to 2 hours on a T4 GPU.
 
