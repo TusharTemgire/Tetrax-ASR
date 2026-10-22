@@ -12,7 +12,7 @@ This guide walks you through fine-tuning **Whisper Medium (769M)** for **Marathi
 | **Model** | `openai/whisper-medium` (769M multilingual parameters) |
 | **Languages** | **Marathi (`mr`)** and **Hindi (`hi`)** (Devanagari script output) |
 | **Adaptation** | PEFT LoRA (`r=32`, `lora_alpha=64`, trains ~1.1% of parameters, ~8.3M params) |
-| **Memory Optimization** | `batch_size=1`, `gradient_accumulation_steps=8`, `gradient_checkpointing=True`, `fp16=True` |
+| **Memory & Speed** | `batch_size=4`, `gradient_accumulation_steps=2`, `max_steps=500` (~9-10 GB VRAM, ~15-20 mins) |
 | **Dataset** | AI4Bharat IndicVoices (Marathi & Hindi conversational & read speech) |
 | **Evaluation Metrics** | **WER** (Word Error Rate) and **CER** (Character Error Rate for Devanagari text) |
 | **Output** | Fine-tuned LoRA adapter ZIP (`~80 MB`), auto-saved to Google Drive |
@@ -92,8 +92,10 @@ drive.mount('/content/drive')
 - Applies LoRA adapter to attention projection layers (`q_proj`, `v_proj`, `k_proj`, `out_proj`).
 
 #### 5. Seq2Seq Training Loop (Step 8)
-- `per_device_train_batch_size: 1`
-- `gradient_accumulation_steps: 8` (effective batch size = 8)
+- `per_device_train_batch_size: 4` (utilizes ~9-10 GB VRAM, 3.5x faster throughput)
+- `gradient_accumulation_steps: 2` (effective batch size = 8)
+- `max_steps: 500` (finishes in ~15-20 minutes, well within Colab's 2h limit)
+- `dataloader_num_workers: 2` & `dataloader_pin_memory: True`
 - `learning_rate: 1e-4`
 - `gradient_checkpointing: True`
 - `fp16: True`

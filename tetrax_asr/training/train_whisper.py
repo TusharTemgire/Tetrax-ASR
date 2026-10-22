@@ -8,6 +8,7 @@ import os
 import argparse
 from pathlib import Path
 import torch
+import numpy as np
 import evaluate
 from transformers import (
     WhisperProcessor,
@@ -113,7 +114,21 @@ def train(
         pred_ids = pred.predictions
         label_ids = pred.label_ids
 
-        label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
+        # Unpack if returned as tuple
+        if isinstance(pred_ids, tuple):
+            pred_ids = pred_ids[0]
+        if isinstance(label_ids, tuple):
+            label_ids = label_ids[0]
+
+        pred_ids = np.array(pred_ids)
+        label_ids = np.array(label_ids)
+
+        pad_id = processor.tokenizer.pad_token_id or 0
+        vocab_size = len(processor.tokenizer)
+
+        # Replace -100 padding index and any out-of-bounds IDs to prevent OverflowError in Rust tokenizer
+        pred_ids = np.where((pred_ids >= 0) & (pred_ids < vocab_size), pred_ids, pad_id)
+        label_ids = np.where((label_ids >= 0) & (label_ids < vocab_size), label_ids, pad_id)
 
         pred_str = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
         label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True)

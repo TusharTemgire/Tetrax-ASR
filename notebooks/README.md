@@ -44,8 +44,8 @@ This guide provides a comprehensive, step-by-step walkthrough to fine-tune **`op
 | **LoRA Rank / Alpha** | `r = 32`, `lora_alpha = 64`, `dropout = 0.05` |
 | **Target Languages** | **Marathi (`mr`)** & **Hindi (`hi`)** (Devanagari script) |
 | **Precision** | FP16 mixed precision |
-| **Memory Optimization** | `gradient_checkpointing = True`, `batch_size = 1`, `grad_accum = 8` |
-| **VRAM Consumption** | **~8.2 GB** (fits comfortably within Colab T4's 15 GB VRAM) |
+| **Memory & Speed** | `batch_size = 4`, `grad_accum = 2`, `max_steps = 500` (~15-20 min total) |
+| **VRAM Consumption** | **~9.2 GB** (maximizes T4 GPU compute; well within 15 GB limit) |
 | **Output Model Size** | **~80 MB** (portable adapter archive vs ~3 GB full checkpoint) |
 
 ---
@@ -206,17 +206,21 @@ model = get_peft_model(model, peft_config)
 ---
 
 ### Step 10: Start Training with Seq2SeqTrainer (Step 8 Cell)
-Launches the memory-optimized fine-tuning loop:
+Launches the memory and speed-optimized fine-tuning loop:
 ```python
 training_args = Seq2SeqTrainingArguments(
     output_dir="/content/TETRAX-ASR-WHISPER-MEDIUM-769M",
-    per_device_train_batch_size=1,
-    gradient_accumulation_steps=8,     # Effective batch size = 8
+    per_device_train_batch_size=2,        # Utilizes available VRAM for 2x faster throughput
+    gradient_accumulation_steps=4,        # Effective batch size = 8
     learning_rate=1e-4,
-    warmup_steps=100,
-    num_train_epochs=3,
+    warmup_steps=50,
+    max_steps=500,                        # Target ~500 steps (finishes in ~20-25 mins)
     eval_strategy="steps",
+    eval_steps=100,
+    save_steps=100,
+    logging_steps=20,
     fp16=True,
+    dataloader_num_workers=2,             # Pre-load batches asynchronously
     gradient_checkpointing=True,
     save_total_limit=2,
     metric_for_best_model="wer",
