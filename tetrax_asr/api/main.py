@@ -10,6 +10,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 import logging
+import warnings
+
+# Suppress informational Hugging Face generation notices
+warnings.filterwarnings("ignore")
+try:
+    from transformers.utils import logging as hf_logging
+    hf_logging.set_verbosity_error()
+except Exception:
+    pass
 
 from tetrax_asr.config import api_config, TETRAX_DIR
 from tetrax_asr.inference.engine import TetraxWhisperEngine

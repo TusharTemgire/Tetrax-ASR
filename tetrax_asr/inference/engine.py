@@ -9,11 +9,24 @@ import time
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
+import warnings
 import logging
 import torch
 import numpy as np
 import soundfile as sf
 import librosa
+
+# Suppress informational generation deprecation notices
+warnings.filterwarnings("ignore", message=".*max_new_tokens.*")
+warnings.filterwarnings("ignore", message=".*forced_decoder_ids.*")
+warnings.filterwarnings("ignore", message=".*clean_up_tokenization_spaces.*")
+warnings.filterwarnings("ignore", message=".*generation_config.*")
+
+try:
+    from transformers.utils import logging as hf_logging
+    hf_logging.set_verbosity_error()
+except Exception:
+    pass
 
 from tetrax_asr.config import model_config, audio_config, BASE_DIR, CHECKPOINTS_DIR
 
@@ -102,6 +115,8 @@ class TetraxWhisperEngine:
         if is_merged:
             self.is_finetuned = True
             self.model.eval()
+            if hasattr(self.model, "generation_config") and self.model.generation_config is not None:
+                self.model.generation_config.max_length = None
             logger.info("Tetrax Whisper engine initialized with standalone merged model.")
             return
 
@@ -141,6 +156,8 @@ class TetraxWhisperEngine:
             self.is_finetuned = False
 
         self.model.eval()
+        if hasattr(self.model, "generation_config") and self.model.generation_config is not None:
+            self.model.generation_config.max_length = None
         logger.info("Tetrax Whisper engine initialized and ready.")
 
     def load_audio_array(self, audio_input: Union[str, bytes, io.BytesIO, np.ndarray], target_sr: int = 16000) -> np.ndarray:
